@@ -1783,7 +1783,7 @@ function renderHistTable(data, isAdmin){
             <td><span class="badge ${c.quotation_type==='MANUAL'?'badge-amber':'badge-navy'}">${c.quotation_type||'SKU'}</span></td>
             <td>${c.responsible_input||'–'}</td>
             <td style="text-align:center;white-space:nowrap">
-              <button class="btn-icon" onclick='openCot(${JSON.stringify(c.quotation_type||"sku").toLowerCase()},${JSON.stringify(c)})' title="Editar">✏️</button>
+              <button class="btn-icon" onclick="openCotEdit(c)" title="Editar">✏️</button>
               ${isAdmin?`<button class="btn-icon" onclick="disableRec(${c.id})" title="Desabilitar" style="margin-left:4px">🗑️</button>`:''}
             </td>
           </tr>
@@ -1816,7 +1816,7 @@ async function disableRec(id){
 async function renderSuppliers(){
   const isAdmin = ['zeus','admin'].includes(CU.nivel_acesso);
   document.getElementById('topbar-actions').innerHTML =
-    isAdmin?`<button class="btn btn-navy" onclick="alert('Em breve: cadastro de fornecedor')">+ Novo Fornecedor</button>`:'';
+    isAdmin?`<button class="btn btn-navy" onclick="openSupplier()">+ Novo Fornecedor</button>`:'';
   document.getElementById('page-content').innerHTML = `
     <div class="card">
       <div class="card-header">
@@ -2342,8 +2342,171 @@ function showToast(msg,type='info'){
 // Configura max date no campo de data quando mudar
 document.getElementById('f-data')?.addEventListener('change', updateSemana);
 
+
+/* ─────────────────────────────────────────────────────────────
+   FORNECEDOR — abrir/salvar modal
+   Tabela: tb_price_index_possible_suppliers
+   ───────────────────────────────────────────────────────────── */
+function openSupplier(record=null){
+  EDIT_ID = record?.id || null;
+  document.getElementById('ms-title').textContent = record ? 'Editar Fornecedor' : 'Novo Fornecedor';
+  document.getElementById('s-product').value  = record?.product || '';
+  document.getElementById('s-supplier').value = record?.supplier || '';
+  document.getElementById('s-subseg').value   = record?.subsegment || '';
+  document.getElementById('s-buyer').value    = record?.buyer || '';
+  document.getElementById('s-freq').value     = record?.frequency || '';
+  document.getElementById('s-mand').value     = record?.mandatory_quotation || 'SIM';
+  document.getElementById('s-status').value   = record?.status || 'ATIVO';
+  document.getElementById('s-contact').value  = record?.contact || '';
+  document.getElementById('s-email').value    = record?.email || '';
+  document.getElementById('s-date').value     = record?.imput_date || new Date().toISOString().split('T')[0];
+  const ativo = record?.ativo !== false;
+  document.querySelector(`input[name="s-ativo"][value="${ativo}"]`).checked = true;
+
+  // Inicializa autocompletes do modal de fornecedor
+  acInit('s-prod-list', 's-prod-list', _dd.produto||[]);
+  acInit('s-seg-list',  's-seg-list',  _dd.segmento||[]);
+  acInit('s-buy-list',  's-buy-list',  _dd.comprador||[]);
+
+  openModal('modal-supp');
+}
+
+async function saveSupplier(){
+  const product  = document.getElementById('s-product').value;
+  const supplier = document.getElementById('s-supplier').value;
+  if(!product || !supplier){ showToast('Produto e Fornecedor são obrigatórios.','warning'); return; }
+
+  const payload = {
+    product:             product,
+    supplier:            supplier,
+    subsegment:          document.getElementById('s-subseg').value || null,
+    buyer:               document.getElementById('s-buyer').value || null,
+    frequency:           document.getElementById('s-freq').value || null,
+    mandatory_quotation: document.getElementById('s-mand').value,
+    status:              document.getElementById('s-status').value,
+    contact:             document.getElementById('s-contact').value || null,
+    email:               document.getElementById('s-email').value || null,
+    imput_date:          document.getElementById('s-date').value || null,
+    ativo:               document.querySelector('input[name="s-ativo"]:checked')?.value === 'true',
+    is_deleted:          false
+  };
+
+  try {
+    if(EDIT_ID) await sbPatch('tb_price_index_possible_suppliers', EDIT_ID, payload);
+    else await sb('tb_price_index_possible_suppliers', {method:'POST', body:payload});
+    showToast(EDIT_ID ? 'Fornecedor atualizado!' : 'Fornecedor cadastrado!', 'success');
+    closeModal('modal-supp');
+    renderSuppliers();
+  } catch(e){ showToast('Erro ao salvar: ' + e.message, 'error'); }
+}
+
+/* Helper para abrir cotação no modo edição a partir do histórico */
+function openCotEdit(record){
+  const type = (record.quotation_type || 'SKU').toLowerCase();
+  openCot(type, record);
+}
+
 applyStoredSettings();
 checkSession();
 </script>
+
+<!-- ═══════════════════════════════════════════════════════════
+  MODAL: FORNECEDOR POSSÍVEL
+  Cadastro e edição de fornecedores possíveis
+════════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-supp">
+  <div class="modal modal-sm">
+    <div class="modal-head">
+      <div>
+        <div class="modal-head-title">🏭 <span id="ms-title">Novo Fornecedor</span></div>
+        <div class="modal-head-sub">Cadastre um fornecedor possível para cotação</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-supp')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg fg-2">
+        <div class="fi-group">
+          <label class="fi-label">Produto <span class="req">*</span></label>
+          <div class="ac-wrap">
+            <input class="fi-input ac-input" id="s-product" placeholder="Buscar produto..." autocomplete="off"
+              oninput="acFilter('s-product','s-prod-list',_dd.produto)" onfocus="acOpen('s-prod-list')">
+            <span class="ac-icon">▾</span>
+            <div class="ac-list" id="s-prod-list"></div>
+          </div>
+        </div>
+        <div class="fi-group">
+          <label class="fi-label">Fornecedor <span class="req">*</span></label>
+          <input type="text" class="fi-input" id="s-supplier" placeholder="Nome do fornecedor">
+        </div>
+        <div class="fi-group">
+          <label class="fi-label">Subsegmento</label>
+          <div class="ac-wrap">
+            <input class="fi-input ac-input" id="s-subseg" placeholder="Segmento..." autocomplete="off"
+              oninput="acFilter('s-subseg','s-seg-list',_dd.segmento)" onfocus="acOpen('s-seg-list')">
+            <span class="ac-icon">▾</span>
+            <div class="ac-list" id="s-seg-list"></div>
+          </div>
+        </div>
+        <div class="fi-group">
+          <label class="fi-label">Comprador</label>
+          <div class="ac-wrap">
+            <input class="fi-input ac-input" id="s-buyer" placeholder="Comprador..." autocomplete="off"
+              oninput="acFilter('s-buyer','s-buy-list',_dd.comprador)" onfocus="acOpen('s-buy-list')">
+            <span class="ac-icon">▾</span>
+            <div class="ac-list" id="s-buy-list"></div>
+          </div>
+        </div>
+        <div class="fi-group">
+          <label class="fi-label">Frequência</label>
+          <select class="fi-select" id="s-freq">
+            <option value="">Selecione...</option>
+            <option value="Mensal">Mensal</option>
+            <option value="Quinzenal">Quinzenal</option>
+            <option value="Semanal">Semanal</option>
+            <option value="Trimestral">Trimestral</option>
+          </select>
+        </div>
+        <div class="fi-group">
+          <label class="fi-label">Cotação Obrigatória</label>
+          <select class="fi-select" id="s-mand">
+            <option value="SIM">SIM</option>
+            <option value="NÃO">NÃO</option>
+          </select>
+        </div>
+        <div class="fi-group">
+          <label class="fi-label">Status</label>
+          <select class="fi-select" id="s-status">
+            <option value="ATIVO">Ativo</option>
+            <option value="EM DESENVOLVIMENTO">Em Desenvolvimento</option>
+            <option value="INATIVO">Inativo</option>
+          </select>
+        </div>
+        <div class="fi-group">
+          <label class="fi-label">Contato</label>
+          <input type="text" class="fi-input" id="s-contact" placeholder="Nome do contato">
+        </div>
+        <div class="fi-group sp2">
+          <label class="fi-label">E-mail <span class="req">*</span></label>
+          <input type="email" class="fi-input" id="s-email" placeholder="email@fornecedor.com">
+        </div>
+        <div class="fi-group">
+          <label class="fi-label">Data de Input</label>
+          <input type="date" class="fi-input" id="s-date">
+        </div>
+        <div class="fi-group">
+          <label class="fi-label">Ativo</label>
+          <div class="fi-radio">
+            <label><input type="radio" name="s-ativo" value="true" checked> Sim</label>
+            <label><input type="radio" name="s-ativo" value="false"> Não</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-supp')">Cancelar</button>
+      <button class="btn btn-navy" onclick="saveSupplier()">💾 Salvar Fornecedor</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

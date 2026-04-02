@@ -4,1272 +4,1630 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Price Index | Quimianastácio</title>
-
-<!-- =====================================================
-  PRICE INDEX - Sistema de Gestão de Cotações
-  Desenvolvido para: Quimianastácio
-  Tabelas Supabase:
-    - tb_price_index_users         → usuários e autenticação
-    - tb_price_index_imput         → cotações (tabela principal)
-    - tb_price_index_product       → produtos/fabricantes/embalagens
-    - tb_price_index_planning      → planejamento de produtos
-    - tb_price_index_filter        → filtros (países, rotas, etc.)
-    - tb_price_index_possible_suppliers → fornecedores possíveis
-  ===================================================== -->
-
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  /* =====================================================
-     VARIÁVEIS GLOBAIS - Paleta Anastácio
-     ===================================================== */
-  :root {
-    --navy:       #0D1544;   /* azul principal */
-    --navy-light: #1a2660;   /* azul hover */
-    --navy-dark:  #080e2e;   /* azul escuro */
-    --red:        #C8102E;   /* vermelho Anastácio */
-    --red-light:  #e01535;   /* vermelho hover */
-    --white:      #ffffff;
-    --gray-100:   #f4f6fb;
-    --gray-200:   #e8ecf4;
-    --gray-300:   #cdd3e0;
-    --gray-400:   #9aa3b8;
-    --gray-500:   #6b7592;
-    --gray-600:   #4a5268;
-    --text:       #1a1f36;
-    --text-light: #6b7592;
-    --border:     #dde2ef;
-    --shadow:     0 4px 24px rgba(13,21,68,0.10);
-    --shadow-lg:  0 8px 40px rgba(13,21,68,0.18);
-    --radius:     12px;
-    --radius-sm:  8px;
-    --sidebar-w:  240px;
-    --transition: 0.2s ease;
-  }
+/* ═══════════════════════════════════════════════════════════════
+   PRICE INDEX — Quimianastácio
+   ───────────────────────────────────────────────────────────────
+   ESTRUTURA DO ARQUIVO:
+   1. Variáveis CSS (tokens de design)
+   2. Reset & Base
+   3. Login Screen
+   4. Layout Principal (sidebar + main)
+   5. Sidebar
+   6. Topbar
+   7. Cards & Stats
+   8. Tabelas
+   9. Formulários & Autocomplete
+   10. Modais
+   11. Badge, Pills, Tags
+   12. Botões
+   13. Dashboard Charts
+   14. Fornecedores — bolinhas de mês
+   15. Toast Notifications
+   16. Animações
+   17. Responsivo
+   ═══════════════════════════════════════════════════════════════ */
 
-  /* =====================================================
-     RESET & BASE
-     ===================================================== */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--gray-100); color: var(--text); font-size: 14px; }
-  button { cursor: pointer; font-family: inherit; }
-  input, select, textarea { font-family: inherit; font-size: 14px; }
-  a { text-decoration: none; color: inherit; }
+/* ── 1. TOKENS DE DESIGN ──────────────────────────────────────── */
+:root {
+  /* Marca */
+  --navy:       #0D1544;
+  --navy-80:    #1a2660;
+  --navy-60:    #2d3d7a;
+  --navy-10:    rgba(13,21,68,.10);
+  --navy-05:    rgba(13,21,68,.05);
+  --red:        #C8102E;
+  --red-80:     #e01535;
+  --red-10:     rgba(200,16,46,.10);
 
-  /* =====================================================
-     TELA DE LOGIN
-     ===================================================== */
-  #login-screen {
-    position: fixed; inset: 0; z-index: 1000;
-    background: var(--navy-dark);
-    display: flex; align-items: center; justify-content: center;
-    background-image: radial-gradient(ellipse at 20% 50%, rgba(200,16,46,0.15) 0%, transparent 60%),
-                      radial-gradient(ellipse at 80% 20%, rgba(255,255,255,0.04) 0%, transparent 50%);
-  }
-  .login-card {
-    background: var(--white);
-    border-radius: 20px;
-    padding: 48px 40px 40px;
-    width: 100%; max-width: 420px;
-    box-shadow: var(--shadow-lg);
-    text-align: center;
-  }
-  .login-logo { height: 52px; margin-bottom: 8px; }
-  .login-subtitle { color: var(--text-light); font-size: 13px; margin-bottom: 32px; letter-spacing: 0.5px; text-transform: uppercase; }
-  .login-title { font-size: 22px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
-  .login-form { display: flex; flex-direction: column; gap: 16px; text-align: left; }
-  .form-label { font-size: 12px; font-weight: 600; color: var(--gray-600); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px; }
-  .form-input {
-    width: 100%; padding: 12px 16px;
-    border: 1.5px solid var(--border); border-radius: var(--radius-sm);
-    font-size: 14px; color: var(--text);
-    transition: border-color var(--transition), box-shadow var(--transition);
-    outline: none; background: var(--gray-100);
-  }
-  .form-input:focus { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(13,21,68,0.1); background: var(--white); }
-  .btn-login {
-    width: 100%; padding: 14px;
-    background: var(--navy); color: var(--white);
-    border: none; border-radius: var(--radius-sm);
-    font-size: 15px; font-weight: 600;
-    transition: background var(--transition), transform var(--transition);
-    margin-top: 4px;
-  }
-  .btn-login:hover { background: var(--navy-light); transform: translateY(-1px); }
-  .login-error { color: var(--red); font-size: 13px; text-align: center; display: none; }
+  /* Semânticas */
+  --success:    #10b981;
+  --success-10: rgba(16,185,129,.10);
+  --warning:    #f59e0b;
+  --warning-10: rgba(245,158,11,.10);
+  --info:       #3b82f6;
+  --info-10:    rgba(59,130,246,.10);
 
-  /* =====================================================
-     LAYOUT PRINCIPAL (pós-login)
-     ===================================================== */
-  #app { display: none; height: 100vh; flex-direction: row; }
-  #app.visible { display: flex; }
+  /* Neutros */
+  --white:      #ffffff;
+  --bg:         #f0f2f9;
+  --surface:    #ffffff;
+  --border:     #e2e6f3;
+  --text:       #111827;
+  --text-2:     #4b5563;
+  --text-3:     #9ca3af;
 
-  /* =====================================================
-     SIDEBAR
-     ===================================================== */
-  .sidebar {
-    width: var(--sidebar-w); min-height: 100vh;
-    background: var(--navy);
-    display: flex; flex-direction: column;
-    position: fixed; left: 0; top: 0; bottom: 0; z-index: 100;
-    box-shadow: 4px 0 20px rgba(13,21,68,0.2);
-  }
-  .sidebar-logo {
-    padding: 24px 20px 20px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    display: flex; align-items: center; gap: 12px;
-  }
-  .sidebar-logo img { height: 36px; filter: brightness(0) invert(1); }
-  .sidebar-badge {
-    background: var(--red); color: var(--white);
-    font-size: 10px; font-weight: 700; padding: 2px 8px;
-    border-radius: 20px; letter-spacing: 0.5px;
-  }
-  .sidebar-nav { flex: 1; padding: 16px 0; overflow-y: auto; }
-  .nav-section { padding: 8px 16px 4px; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.35); letter-spacing: 1px; text-transform: uppercase; }
-  .nav-item {
-    display: flex; align-items: center; gap: 12px;
-    padding: 11px 20px; color: rgba(255,255,255,0.7);
-    cursor: pointer; transition: all var(--transition);
-    border-left: 3px solid transparent;
-    font-size: 13.5px; font-weight: 500;
-  }
-  .nav-item:hover { background: rgba(255,255,255,0.07); color: var(--white); border-left-color: rgba(255,255,255,0.3); }
-  .nav-item.active { background: rgba(200,16,46,0.15); color: var(--white); border-left-color: var(--red); }
-  .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
-  .sidebar-user {
-    padding: 16px 20px;
-    border-top: 1px solid rgba(255,255,255,0.1);
-    display: flex; align-items: center; gap: 12px;
-  }
-  .user-avatar {
-    width: 36px; height: 36px; border-radius: 50%;
-    background: var(--red); color: var(--white);
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 700; font-size: 14px; flex-shrink: 0;
-  }
-  .user-info { flex: 1; overflow: hidden; }
-  .user-name { color: var(--white); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .user-role { color: rgba(255,255,255,0.45); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .btn-logout { background: none; border: none; color: rgba(255,255,255,0.4); font-size: 18px; cursor: pointer; transition: color var(--transition); }
-  .btn-logout:hover { color: var(--red); }
+  /* Layout */
+  --sidebar-w:  256px;
+  --radius-sm:  8px;
+  --radius:     12px;
+  --radius-lg:  16px;
+  --radius-xl:  24px;
 
-  /* =====================================================
-     CONTEÚDO PRINCIPAL
-     ===================================================== */
-  .main-content { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
-  .topbar {
-    background: var(--white); padding: 16px 28px;
-    border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: space-between;
-    position: sticky; top: 0; z-index: 50;
-    box-shadow: 0 2px 8px rgba(13,21,68,0.05);
-  }
-  .topbar-title { font-size: 20px; font-weight: 700; color: var(--navy); }
-  .topbar-sub { font-size: 12px; color: var(--text-light); margin-top: 2px; }
-  .topbar-actions { display: flex; gap: 10px; align-items: center; }
-  .page-content { flex: 1; padding: 24px 28px; }
+  /* Sombras */
+  --shadow-xs:  0 1px 3px rgba(13,21,68,.06);
+  --shadow-sm:  0 2px 8px rgba(13,21,68,.08);
+  --shadow:     0 4px 16px rgba(13,21,68,.10);
+  --shadow-lg:  0 8px 32px rgba(13,21,68,.14);
+  --shadow-xl:  0 16px 48px rgba(13,21,68,.18);
 
-  /* =====================================================
-     BOTÕES
-     ===================================================== */
-  .btn {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 9px 18px; border-radius: var(--radius-sm);
-    font-size: 13px; font-weight: 600; border: none;
-    transition: all var(--transition); white-space: nowrap;
-  }
-  .btn-primary { background: var(--navy); color: var(--white); }
-  .btn-primary:hover { background: var(--navy-light); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(13,21,68,0.25); }
-  .btn-danger { background: var(--red); color: var(--white); }
-  .btn-danger:hover { background: var(--red-light); }
-  .btn-outline { background: transparent; color: var(--navy); border: 1.5px solid var(--border); }
-  .btn-outline:hover { border-color: var(--navy); background: var(--gray-100); }
-  .btn-success { background: #16a34a; color: var(--white); }
-  .btn-success:hover { background: #15803d; }
-  .btn-sm { padding: 6px 12px; font-size: 12px; }
-  .btn-icon { width: 34px; height: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); border: 1.5px solid var(--border); background: var(--white); color: var(--gray-600); font-size: 16px; transition: all var(--transition); }
-  .btn-icon:hover { border-color: var(--navy); color: var(--navy); }
+  /* Transição */
+  --ease: .18s cubic-bezier(.4,0,.2,1);
+}
 
-  /* =====================================================
-     CARDS E ESTATÍSTICAS (Dashboard)
-     ===================================================== */
-  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-  .stat-card {
-    background: var(--white); border-radius: var(--radius);
-    padding: 20px 24px; border: 1px solid var(--border);
-    box-shadow: var(--shadow);
-    display: flex; align-items: center; gap: 16px;
-    transition: transform var(--transition), box-shadow var(--transition);
-  }
-  .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
-  .stat-icon {
-    width: 48px; height: 48px; border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 22px; flex-shrink: 0;
-  }
-  .stat-icon.navy { background: rgba(13,21,68,0.1); }
-  .stat-icon.red { background: rgba(200,16,46,0.1); }
-  .stat-icon.green { background: rgba(22,163,74,0.1); }
-  .stat-icon.amber { background: rgba(217,119,6,0.1); }
-  .stat-value { font-size: 28px; font-weight: 800; color: var(--navy); line-height: 1; }
-  .stat-label { font-size: 12px; color: var(--text-light); margin-top: 4px; font-weight: 500; }
-  .stat-delta { font-size: 11px; margin-top: 4px; font-weight: 600; }
-  .delta-up { color: #16a34a; } .delta-down { color: var(--red); }
+/* ── 2. RESET & BASE ─────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;-webkit-font-smoothing:antialiased}
+button{cursor:pointer;font-family:inherit;border:none;background:none}
+input,select,textarea{font-family:inherit;font-size:14px}
+a{text-decoration:none;color:inherit}
+img{display:block}
 
-  /* =====================================================
-     TABELAS
-     ===================================================== */
-  .table-card { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); overflow: hidden; }
-  .table-header { padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-  .table-header-left { display: flex; flex-direction: column; }
-  .table-title { font-size: 16px; font-weight: 700; color: var(--navy); }
-  .table-subtitle { font-size: 12px; color: var(--text-light); margin-top: 2px; }
-  .table-filters { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .filter-input {
-    padding: 8px 12px; border: 1.5px solid var(--border);
-    border-radius: var(--radius-sm); font-size: 13px; color: var(--text);
-    outline: none; transition: border-color var(--transition);
-    background: var(--gray-100); min-width: 160px;
-  }
-  .filter-input:focus { border-color: var(--navy); background: var(--white); }
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; }
-  thead th {
-    background: var(--gray-100); padding: 11px 16px;
-    font-size: 11px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.5px; color: var(--gray-600);
-    border-bottom: 1px solid var(--border); white-space: nowrap;
-    text-align: left;
-  }
-  tbody td { padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text); font-size: 13px; }
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover { background: var(--gray-100); }
-  .badge {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 3px 10px; border-radius: 20px;
-    font-size: 11px; font-weight: 600; white-space: nowrap;
-  }
-  .badge-navy { background: rgba(13,21,68,0.1); color: var(--navy); }
-  .badge-red { background: rgba(200,16,46,0.1); color: var(--red); }
-  .badge-green { background: rgba(22,163,74,0.1); color: #16a34a; }
-  .badge-amber { background: rgba(217,119,6,0.1); color: #d97706; }
-  .badge-gray { background: var(--gray-200); color: var(--gray-600); }
+/* ── 3. TELA DE LOGIN ───────────────────────────────────────── */
+/* Container principal da tela de login */
+#login-screen {
+  position:fixed;inset:0;z-index:1000;
+  display:flex;
+  background: var(--navy);
+  overflow:hidden;
+}
+/* Painel esquerdo — visual/branding */
+.login-visual {
+  flex:1;
+  position:relative;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background: linear-gradient(135deg, #080e2e 0%, var(--navy) 50%, #1a2660 100%);
+  overflow:hidden;
+  padding:48px;
+}
+.login-visual::before {
+  content:'';position:absolute;
+  width:600px;height:600px;border-radius:50%;
+  background:radial-gradient(circle, rgba(200,16,46,.2) 0%, transparent 70%);
+  top:-100px;right:-150px;
+}
+.login-visual::after {
+  content:'';position:absolute;
+  width:400px;height:400px;border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.04) 0%, transparent 70%);
+  bottom:-100px;left:-50px;
+}
+/* Grade decorativa no painel de login */
+.login-grid {
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+  background-size:48px 48px;
+}
+.login-brand {
+  position:relative;z-index:2;
+  text-align:center;
+}
+.login-brand-logo {
+  height:56px;margin:0 auto 24px;
+  filter:brightness(0) invert(1);
+}
+.login-brand-title {
+  font-size:42px;font-weight:800;color:var(--white);
+  letter-spacing:-1px;line-height:1.1;
+}
+.login-brand-title span{color:var(--red);}
+.login-brand-sub {
+  font-size:16px;color:rgba(255,255,255,.5);
+  margin-top:12px;font-weight:500;
+}
+.login-stats {
+  display:flex;gap:32px;margin-top:48px;
+  position:relative;z-index:2;
+}
+.login-stat {
+  text-align:center;
+  padding:20px 24px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:var(--radius);
+  backdrop-filter:blur(12px);
+}
+.login-stat-val{font-size:28px;font-weight:800;color:var(--white);}
+.login-stat-lbl{font-size:12px;color:rgba(255,255,255,.5);margin-top:4px;}
 
-  /* =====================================================
-     MODAL / FORMULÁRIO DE COTAÇÃO
-     ===================================================== */
-  .modal-overlay {
-    position: fixed; inset: 0; z-index: 200;
-    background: rgba(8,14,46,0.6); backdrop-filter: blur(4px);
-    display: none; align-items: flex-start; justify-content: center;
-    padding: 24px; overflow-y: auto;
-  }
-  .modal-overlay.open { display: flex; }
-  .modal {
-    background: var(--white); border-radius: 16px;
-    width: 100%; max-width: 900px;
-    box-shadow: var(--shadow-lg);
-    overflow: hidden; margin: auto;
-  }
-  .modal-header {
-    background: var(--navy); color: var(--white);
-    padding: 20px 28px; display: flex; align-items: center; justify-content: space-between;
-  }
-  .modal-title { font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
-  .modal-close { background: none; border: none; color: rgba(255,255,255,0.7); font-size: 22px; cursor: pointer; line-height: 1; transition: color var(--transition); }
-  .modal-close:hover { color: var(--white); }
-  .modal-body { padding: 28px; }
-  .modal-footer { padding: 16px 28px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--gray-100); }
+/* Painel direito — formulário */
+.login-form-panel {
+  width:460px;flex-shrink:0;
+  background:var(--white);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:48px 40px;
+  position:relative;
+}
+.login-form-panel::before {
+  content:'';
+  position:absolute;top:0;left:0;right:0;height:4px;
+  background:linear-gradient(90deg, var(--navy), var(--red));
+}
+.login-form-tag {
+  background:var(--red-10);color:var(--red);
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+  padding:4px 12px;border-radius:20px;margin-bottom:24px;
+}
+.login-form-title{font-size:28px;font-weight:800;color:var(--navy);text-align:center;margin-bottom:6px;}
+.login-form-sub{font-size:13px;color:var(--text-3);text-align:center;margin-bottom:32px;}
+.lf-group{display:flex;flex-direction:column;gap:6px;width:100%;margin-bottom:16px;}
+.lf-label{font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;}
+.lf-input {
+  width:100%;padding:13px 16px;
+  border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  font-size:14px;color:var(--text);background:var(--bg);
+  outline:none;transition:border-color var(--ease),box-shadow var(--ease),background var(--ease);
+}
+.lf-input:focus{border-color:var(--navy);background:var(--white);box-shadow:0 0 0 3px var(--navy-10);}
+.btn-login-submit {
+  width:100%;padding:14px;margin-top:8px;
+  background:var(--navy);color:var(--white);
+  border-radius:var(--radius-sm);font-size:15px;font-weight:700;
+  transition:background var(--ease),transform var(--ease),box-shadow var(--ease);
+  display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.btn-login-submit:hover{background:var(--navy-80);transform:translateY(-1px);box-shadow:var(--shadow);}
+.login-error{color:var(--red);font-size:13px;text-align:center;padding:10px;background:var(--red-10);border-radius:var(--radius-sm);display:none;margin-top:8px;}
 
-  /* =====================================================
-     FORMULÁRIO DE COTAÇÃO - GRID DE CAMPOS
-     ===================================================== */
-  .form-section-title {
-    font-size: 11px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 1px; color: var(--red); margin-bottom: 16px;
-    padding-bottom: 8px; border-bottom: 2px solid rgba(200,16,46,0.15);
-    display: flex; align-items: center; gap: 8px;
-  }
-  .form-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px; }
-  .form-grid-2 { grid-template-columns: repeat(2, 1fr); }
-  .form-grid-3 { grid-template-columns: repeat(3, 1fr); }
-  .form-grid-4 { grid-template-columns: repeat(4, 1fr); }
-  .col-span-2 { grid-column: span 2; }
-  .col-span-3 { grid-column: span 3; }
-  .col-span-5 { grid-column: span 5; }
-  .field-group { display: flex; flex-direction: column; gap: 6px; }
-  .field-label { font-size: 11px; font-weight: 700; color: var(--gray-600); text-transform: uppercase; letter-spacing: 0.4px; }
-  .field-label .required { color: var(--red); }
-  .field-input, .field-select, .field-textarea {
-    padding: 9px 12px; border: 1.5px solid var(--border);
-    border-radius: var(--radius-sm); font-size: 13px; color: var(--text);
-    background: var(--gray-100); outline: none;
-    transition: border-color var(--transition), background var(--transition);
-    width: 100%;
-  }
-  .field-input:focus, .field-select:focus, .field-textarea:focus {
-    border-color: var(--navy); background: var(--white);
-    box-shadow: 0 0 0 3px rgba(13,21,68,0.08);
-  }
-  .field-input.highlight, .field-select.highlight { border-color: #16a34a; background: rgba(22,163,74,0.04); }
-  .field-input.cfr-calc { background: rgba(13,21,68,0.05); color: var(--navy); font-weight: 700; border-color: var(--navy); }
-  .field-textarea { resize: vertical; min-height: 80px; }
-  .radio-group { display: flex; gap: 16px; align-items: center; padding: 9px 0; }
-  .radio-option { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; color: var(--text); }
-  .radio-option input { accent-color: var(--navy); width: 16px; height: 16px; }
-  .history-toggle {
-    display: flex; align-items: center; gap: 8px;
-    padding: 10px 16px; background: rgba(22,163,74,0.08);
-    border: 1.5px solid rgba(22,163,74,0.3); border-radius: var(--radius-sm);
-    margin-bottom: 20px;
-  }
-  .history-toggle input { accent-color: #16a34a; width: 16px; height: 16px; }
-  .history-toggle label { font-size: 13px; font-weight: 600; color: #15803d; cursor: pointer; }
+/* ── 4. LAYOUT PRINCIPAL ────────────────────────────────────── */
+#app{display:none;height:100vh;flex-direction:row;}
+#app.visible{display:flex;}
+.main-content{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh;overflow:hidden;}
+.page-body{flex:1;overflow-y:auto;padding:24px 28px;}
 
-  /* =====================================================
-     DASHBOARD - CHARTS PLACEHOLDER
-     ===================================================== */
-  .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px; }
-  .chart-card { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); padding: 20px; box-shadow: var(--shadow); }
-  .chart-title { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
-  .chart-body { height: 200px; display: flex; align-items: flex-end; gap: 8px; padding-top: 8px; }
-  .chart-bar { flex: 1; background: var(--navy); border-radius: 4px 4px 0 0; transition: opacity var(--transition); min-width: 20px; }
-  .chart-bar:hover { opacity: 0.75; }
-  .chart-bar.red { background: var(--red); }
-  .donut-wrap { display: flex; align-items: center; justify-content: center; height: 200px; position: relative; }
-  .donut-legend { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
-  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-light); }
-  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+/* ── 5. SIDEBAR ─────────────────────────────────────────────── */
+/* Navegação lateral fixa */
+.sidebar {
+  width:var(--sidebar-w);height:100vh;
+  position:fixed;left:0;top:0;bottom:0;z-index:100;
+  background:var(--navy);
+  display:flex;flex-direction:column;
+  box-shadow:4px 0 24px rgba(13,21,68,.15);
+}
+/* Logo no topo da sidebar */
+.sb-logo {
+  padding:20px 20px 16px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  display:flex;align-items:center;gap:10px;
+}
+.sb-logo img{height:34px;filter:brightness(0) invert(1);}
+.sb-logo-badge {
+  background:linear-gradient(135deg,var(--red),#e01535);
+  color:var(--white);font-size:9px;font-weight:800;
+  padding:2px 7px;border-radius:20px;letter-spacing:.5px;
+  text-transform:uppercase;
+}
+.sb-nav{flex:1;padding:12px 0;overflow-y:auto;}
+.sb-section {
+  padding:12px 16px 4px;
+  font-size:10px;font-weight:700;color:rgba(255,255,255,.3);
+  letter-spacing:1.2px;text-transform:uppercase;
+}
+/* Item de navegação da sidebar */
+.sb-item {
+  display:flex;align-items:center;gap:11px;
+  padding:10px 20px;
+  color:rgba(255,255,255,.6);
+  cursor:pointer;
+  border-left:3px solid transparent;
+  font-size:13.5px;font-weight:500;
+  transition:all var(--ease);
+  position:relative;
+}
+.sb-item:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.9);border-left-color:rgba(255,255,255,.2);}
+.sb-item.active{background:rgba(200,16,46,.12);color:var(--white);border-left-color:var(--red);}
+.sb-item .ico{font-size:16px;width:20px;text-align:center;flex-shrink:0;}
+/* Notificação/badge no item do menu */
+.sb-badge{margin-left:auto;background:var(--red);color:var(--white);font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;}
 
-  /* =====================================================
-     FORNECEDORES POSSÍVEIS - BOLINHAS DE MÊS
-     ===================================================== */
-  .month-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
-  .dot-green { background: #16a34a; }
-  .dot-red { background: var(--red); }
-  .months-row { display: flex; gap: 4px; align-items: center; }
+/* Usuário no rodapé da sidebar */
+.sb-user{
+  padding:14px 18px;
+  border-top:1px solid rgba(255,255,255,.08);
+  display:flex;align-items:center;gap:10px;
+}
+.sb-avatar{
+  width:36px;height:36px;border-radius:50%;
+  background:linear-gradient(135deg,var(--red),var(--red-80));
+  color:var(--white);display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:14px;flex-shrink:0;
+}
+.sb-user-info{flex:1;overflow:hidden;}
+.sb-user-name{color:var(--white);font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sb-user-role{color:rgba(255,255,255,.4);font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-top:1px;}
+.btn-logout{color:rgba(255,255,255,.3);font-size:18px;transition:color var(--ease);}
+.btn-logout:hover{color:var(--red);}
 
-  /* =====================================================
-     GESTÃO DE USUÁRIOS
-     ===================================================== */
-  .user-card {
-    background: var(--white); border-radius: var(--radius);
-    border: 1px solid var(--border); padding: 16px 20px;
-    display: flex; align-items: center; gap: 16px;
-    transition: box-shadow var(--transition);
-  }
-  .user-card:hover { box-shadow: var(--shadow); }
-  .user-card-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--navy); color: var(--white); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; }
-  .user-card-info { flex: 1; }
-  .user-card-name { font-weight: 700; color: var(--navy); font-size: 14px; }
-  .user-card-email { font-size: 12px; color: var(--text-light); margin-top: 2px; }
-  .users-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
+/* ── 6. TOPBAR ──────────────────────────────────────────────── */
+.topbar{
+  background:var(--white);padding:14px 28px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  position:sticky;top:0;z-index:50;
+  box-shadow:var(--shadow-xs);
+}
+.topbar-left{}
+.topbar-title{font-size:19px;font-weight:800;color:var(--navy);}
+.topbar-sub{font-size:12px;color:var(--text-3);margin-top:1px;}
+.topbar-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
 
-  /* =====================================================
-     PAGINAÇÃO
-     ===================================================== */
-  .pagination { display: flex; align-items: center; gap: 8px; padding: 16px 24px; border-top: 1px solid var(--border); }
-  .pagination-info { font-size: 12px; color: var(--text-light); flex: 1; }
-  .page-btn { width: 32px; height: 32px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); background: var(--white); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; transition: all var(--transition); display: flex; align-items: center; justify-content: center; }
-  .page-btn:hover { border-color: var(--navy); color: var(--navy); }
-  .page-btn.active { background: var(--navy); color: var(--white); border-color: var(--navy); }
+/* ── 7. CARDS & STATS ───────────────────────────────────────── */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-bottom:24px;}
+/* Card de KPI individual */
+.kpi-card{
+  background:var(--white);border-radius:var(--radius);
+  padding:20px;border:1px solid var(--border);
+  box-shadow:var(--shadow-xs);
+  display:flex;flex-direction:column;gap:12px;
+  position:relative;overflow:hidden;
+  transition:transform var(--ease),box-shadow var(--ease);
+}
+.kpi-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
+/* Linha colorida no topo do card */
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--kpi-color,var(--navy));}
+.kpi-card.red{--kpi-color:var(--red);}
+.kpi-card.green{--kpi-color:var(--success);}
+.kpi-card.amber{--kpi-color:var(--warning);}
+.kpi-top{display:flex;align-items:center;justify-content:space-between;}
+.kpi-icon{
+  width:44px;height:44px;border-radius:var(--radius-sm);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;background:var(--navy-05);
+}
+.kpi-card.red .kpi-icon{background:var(--red-10);}
+.kpi-card.green .kpi-icon{background:var(--success-10);}
+.kpi-card.amber .kpi-icon{background:var(--warning-10);}
+.kpi-delta{font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;}
+.delta-up{background:var(--success-10);color:var(--success);}
+.delta-down{background:var(--red-10);color:var(--red);}
+.kpi-value{font-size:30px;font-weight:800;color:var(--navy);line-height:1;}
+.kpi-label{font-size:12px;color:var(--text-3);font-weight:500;}
 
-  /* =====================================================
-     TOAST NOTIFICATIONS
-     ===================================================== */
-  .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
-  .toast {
-    background: var(--white); border-radius: var(--radius-sm);
-    padding: 14px 18px; box-shadow: var(--shadow-lg);
-    display: flex; align-items: center; gap: 12px;
-    min-width: 280px; border-left: 4px solid var(--navy);
-    animation: slideIn 0.3s ease;
-    font-size: 13px; font-weight: 500;
-  }
-  .toast.success { border-left-color: #16a34a; }
-  .toast.error { border-left-color: var(--red); }
-  .toast.warning { border-left-color: #d97706; }
-  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+/* Card genérico (tabelas, gráficos) */
+.card{
+  background:var(--white);border-radius:var(--radius);
+  border:1px solid var(--border);box-shadow:var(--shadow-xs);
+  overflow:hidden;
+}
+.card-header{
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+}
+.card-title{font-size:15px;font-weight:700;color:var(--navy);}
+.card-sub{font-size:12px;color:var(--text-3);margin-top:2px;}
+.card-filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.card-body{padding:20px;}
 
-  /* =====================================================
-     LOADING SPINNER
-     ===================================================== */
-  .spinner { width: 20px; height: 20px; border: 2.5px solid rgba(255,255,255,0.3); border-top-color: var(--white); border-radius: 50%; animation: spin 0.7s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+/* ── 8. TABELAS ─────────────────────────────────────────────── */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead th{
+  background:var(--bg);padding:10px 16px;
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--text-2);border-bottom:1px solid var(--border);
+  white-space:nowrap;text-align:left;
+}
+tbody td{padding:11px 16px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text);}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr{transition:background var(--ease);}
+tbody tr:hover{background:var(--bg);}
+/* Paginação */
+.pagination{display:flex;align-items:center;gap:8px;padding:14px 20px;border-top:1px solid var(--border);}
+.pg-info{flex:1;font-size:12px;color:var(--text-3);}
+.pg-btn{
+  width:30px;height:30px;border-radius:var(--radius-sm);
+  border:1.5px solid var(--border);background:var(--white);
+  color:var(--text-2);font-size:12px;font-weight:600;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all var(--ease);
+}
+.pg-btn:hover{border-color:var(--navy);color:var(--navy);}
+.pg-btn.active{background:var(--navy);color:var(--white);border-color:var(--navy);}
 
-  /* =====================================================
-     UTILITÁRIOS
-     ===================================================== */
-  .hidden { display: none !important; }
-  .text-center { text-align: center; }
-  .text-right { text-align: right; }
-  .flex { display: flex; }
-  .items-center { align-items: center; }
-  .gap-2 { gap: 8px; }
-  .gap-3 { gap: 12px; }
-  .mt-4 { margin-top: 16px; }
-  .mb-4 { margin-bottom: 16px; }
-  .empty-state { text-align: center; padding: 48px; color: var(--text-light); }
-  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
-  .empty-state p { font-size: 14px; }
-  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+/* ── 9. FORMULÁRIOS & AUTOCOMPLETE ─────────────────────────── */
+.fi-group{display:flex;flex-direction:column;gap:5px;position:relative;}
+.fi-label{font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;}
+.fi-label .req{color:var(--red);}
+/* Estilo base dos inputs de formulário */
+.fi-input,.fi-select,.fi-textarea{
+  padding:9px 12px;border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);font-size:13px;color:var(--text);
+  background:var(--bg);outline:none;width:100%;
+  transition:border-color var(--ease),background var(--ease),box-shadow var(--ease);
+}
+.fi-input:focus,.fi-select:focus,.fi-textarea:focus{
+  border-color:var(--navy);background:var(--white);
+  box-shadow:0 0 0 3px var(--navy-10);
+}
+/* Campo preenchido pelo histórico — destaque verde */
+.fi-input.hist,.fi-select.hist{border-color:var(--success);background:rgba(16,185,129,.04);}
+/* Campo calculado automaticamente (CFR Anastácio) */
+.fi-input.calc{background:var(--navy-05);color:var(--navy);font-weight:700;border-color:var(--navy-60);}
+.fi-textarea{resize:vertical;min-height:72px;}
+.fi-radio{display:flex;gap:14px;align-items:center;padding:8px 0;}
+.fi-radio label{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;}
+.fi-radio input[type=radio]{accent-color:var(--navy);width:15px;height:15px;}
 
-  /* =====================================================
-     RESPONSIVO
-     ===================================================== */
-  @media (max-width: 900px) {
-    .form-grid { grid-template-columns: repeat(2, 1fr); }
-    .charts-grid { grid-template-columns: 1fr; }
-    .col-span-2, .col-span-3, .col-span-5 { grid-column: span 1; }
-  }
-  @media (max-width: 600px) {
-    :root { --sidebar-w: 0px; }
-    .sidebar { display: none; }
-    .form-grid { grid-template-columns: 1fr; }
-  }
+/* ─ Autocomplete (campo de busca com dropdown) ─ */
+.ac-wrap{position:relative;}
+/* Input com ícone de dropdown */
+.ac-input{padding-right:32px;}
+.ac-icon{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  color:var(--text-3);font-size:14px;pointer-events:none;
+}
+/* Lista de sugestões do autocomplete */
+.ac-list{
+  position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:300;
+  background:var(--white);border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);
+  max-height:200px;overflow-y:auto;display:none;
+}
+.ac-list.open{display:block;}
+.ac-item{
+  padding:9px 12px;font-size:13px;cursor:pointer;
+  transition:background var(--ease);
+  border-bottom:1px solid var(--border);
+}
+.ac-item:last-child{border-bottom:none;}
+.ac-item:hover,.ac-item.highlighted{background:var(--bg);}
+.ac-empty{padding:12px;font-size:13px;color:var(--text-3);text-align:center;}
+
+/* ─ Grade de formulário ─ */
+.fg{display:grid;gap:14px;margin-bottom:20px;}
+.fg-5{grid-template-columns:repeat(5,1fr);}
+.fg-4{grid-template-columns:repeat(4,1fr);}
+.fg-3{grid-template-columns:repeat(3,1fr);}
+.fg-2{grid-template-columns:repeat(2,1fr);}
+.sp2{grid-column:span 2;}
+.sp3{grid-column:span 3;}
+.sp5{grid-column:span 5;}
+/* Título de seção dentro do formulário */
+.fs-title{
+  font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;
+  color:var(--red);margin-bottom:14px;padding-bottom:8px;
+  border-bottom:2px solid var(--red-10);
+  display:flex;align-items:center;gap:8px;
+}
+/* Toggle "usar histórico" */
+.hist-toggle{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;background:var(--success-10);
+  border:1.5px solid rgba(16,185,129,.25);border-radius:var(--radius-sm);
+  margin-bottom:20px;
+}
+.hist-toggle input{accent-color:var(--success);width:16px;height:16px;}
+.hist-toggle label{font-size:13px;font-weight:600;color:#059669;cursor:pointer;}
+
+/* Toggle entre cotação SKU e Manual */
+.cot-type-tabs{
+  display:flex;gap:0;background:var(--bg);border-radius:var(--radius-sm);
+  padding:3px;border:1px solid var(--border);margin-bottom:20px;
+  width:fit-content;
+}
+.cot-tab{
+  padding:8px 20px;border-radius:6px;font-size:13px;font-weight:600;
+  color:var(--text-2);cursor:pointer;transition:all var(--ease);
+}
+.cot-tab.active{background:var(--navy);color:var(--white);box-shadow:var(--shadow-xs);}
+
+/* ── 10. MODAIS ─────────────────────────────────────────────── */
+.modal-overlay{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(8,14,46,.55);backdrop-filter:blur(6px);
+  display:none;align-items:flex-start;justify-content:center;
+  padding:20px;overflow-y:auto;
+}
+.modal-overlay.open{display:flex;}
+.modal{
+  background:var(--white);border-radius:var(--radius-lg);
+  width:100%;max-width:940px;
+  box-shadow:var(--shadow-xl);overflow:hidden;
+  margin:auto;animation:modalIn .22s var(--ease);
+}
+@keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}
+.modal-sm{max-width:520px;}
+.modal-head{
+  background:linear-gradient(135deg,var(--navy),#1a2d7a);
+  color:var(--white);padding:18px 24px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.modal-head-title{font-size:16px;font-weight:800;display:flex;align-items:center;gap:10px;}
+.modal-head-sub{font-size:12px;color:rgba(255,255,255,.5);margin-top:2px;}
+.modal-close{color:rgba(255,255,255,.6);font-size:22px;transition:color var(--ease);}
+.modal-close:hover{color:var(--white);}
+.modal-body{padding:24px;}
+.modal-foot{
+  padding:14px 24px;border-top:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  background:var(--bg);
+}
+
+/* ── 11. BADGES ─────────────────────────────────────────────── */
+.badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 10px;border-radius:20px;
+  font-size:11px;font-weight:700;white-space:nowrap;
+}
+.badge-navy{background:var(--navy-10);color:var(--navy);}
+.badge-red{background:var(--red-10);color:var(--red);}
+.badge-green{background:var(--success-10);color:var(--success);}
+.badge-amber{background:var(--warning-10);color:var(--warning);}
+.badge-gray{background:#f3f4f6;color:#6b7280;}
+
+/* ── 12. BOTÕES ─────────────────────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:9px 18px;border-radius:var(--radius-sm);
+  font-size:13px;font-weight:700;white-space:nowrap;
+  transition:all var(--ease);
+}
+.btn-navy{background:var(--navy);color:var(--white);}
+.btn-navy:hover{background:var(--navy-80);transform:translateY(-1px);box-shadow:var(--shadow);}
+.btn-red{background:var(--red);color:var(--white);}
+.btn-red:hover{background:var(--red-80);}
+.btn-ghost{background:transparent;color:var(--navy);border:1.5px solid var(--border);}
+.btn-ghost:hover{border-color:var(--navy);background:var(--bg);}
+.btn-success{background:var(--success);color:var(--white);}
+.btn-success:hover{background:#059669;}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-xs{padding:4px 9px;font-size:11px;}
+.btn-icon{
+  width:32px;height:32px;padding:0;
+  display:inline-flex;align-items:center;justify-content:center;
+  border-radius:var(--radius-sm);border:1.5px solid var(--border);
+  background:var(--white);color:var(--text-2);font-size:15px;
+  transition:all var(--ease);
+}
+.btn-icon:hover{border-color:var(--navy);color:var(--navy);}
+
+/* ── FILTROS ────────────────────────────────────────────────── */
+.filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.fi-filter{
+  padding:8px 12px;border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);font-size:13px;color:var(--text);
+  background:var(--bg);outline:none;
+  transition:border-color var(--ease);min-width:140px;
+}
+.fi-filter:focus{border-color:var(--navy);background:var(--white);}
+
+/* ── 13. DASHBOARD CHARTS ───────────────────────────────────── */
+.charts-grid{display:grid;grid-template-columns:3fr 2fr;gap:20px;margin-bottom:20px;}
+.chart-wrap{height:220px;display:flex;flex-direction:column;gap:10px;}
+.bar-row{display:flex;align-items:center;gap:10px;}
+.bar-label{width:90px;font-size:12px;font-weight:600;color:var(--text-2);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-track{flex:1;height:26px;background:var(--bg);border-radius:20px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:20px;display:flex;align-items:center;padding-left:10px;transition:width .6s cubic-bezier(.4,0,.2,1);}
+.bar-fill-val{color:var(--white);font-size:11px;font-weight:700;}
+.seg-list{display:flex;flex-direction:column;gap:10px;}
+.seg-row{display:flex;align-items:center;gap:8px;}
+.seg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.seg-name{flex:1;font-size:12px;color:var(--text-2);}
+.seg-val{font-size:13px;font-weight:700;color:var(--navy);}
+.seg-pct{font-size:11px;color:var(--text-3);}
+
+/* ── 14. FORNECEDORES — BOLINHAS ────────────────────────────── */
+.dot{width:11px;height:11px;border-radius:50%;display:inline-block;flex-shrink:0;}
+.dot-g{background:var(--success);}
+.dot-r{background:var(--red);}
+.dots-row{display:flex;gap:3px;align-items:center;}
+
+/* ── 15. TOAST ──────────────────────────────────────────────── */
+.toast-wrap{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+.toast{
+  background:var(--white);border-radius:var(--radius-sm);
+  padding:13px 16px;box-shadow:var(--shadow-lg);
+  display:flex;align-items:center;gap:12px;
+  min-width:280px;max-width:360px;
+  border-left:4px solid var(--navy);
+  animation:toastIn .25s var(--ease);
+  font-size:13px;font-weight:500;
+}
+.toast.success{border-left-color:var(--success);}
+.toast.error{border-left-color:var(--red);}
+.toast.warning{border-left-color:var(--warning);}
+@keyframes toastIn{from{transform:translateX(110%);opacity:0}to{transform:none;opacity:1}}
+
+/* ── 16. MISC ───────────────────────────────────────────────── */
+.empty{text-align:center;padding:48px 24px;color:var(--text-3);}
+.empty .ico{font-size:48px;margin-bottom:12px;}
+.spin{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.25);border-top-color:var(--white);border-radius:50%;animation:spin .6s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hidden{display:none!important;}
+.divider{height:1px;background:var(--border);margin:16px 0;}
+
+/* ── 17. RESPONSIVO ─────────────────────────────────────────── */
+@media(max-width:1024px){
+  .login-visual{display:none;}
+  .login-form-panel{width:100%;}
+  .fg-5,.fg-4{grid-template-columns:repeat(2,1fr);}
+  .charts-grid{grid-template-columns:1fr;}
+  .sp2,.sp3,.sp5{grid-column:span 1;}
+}
+@media(max-width:640px){
+  :root{--sidebar-w:0px;}
+  .sidebar{display:none;}
+  .fg-5,.fg-4,.fg-3,.fg-2{grid-template-columns:1fr;}
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PAINEL DE CONFIGURAÇÕES (Settings Panel)
+   Acessível apenas pelo Zeus — permite editar tudo visualmente
+   ═══════════════════════════════════════════════════════════════ */
+.settings-section{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:20px;overflow:hidden;}
+.settings-section-head{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--bg);display:flex;align-items:center;gap:10px;}
+.settings-section-title{font-size:14px;font-weight:700;color:var(--navy);}
+.settings-grid{padding:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;}
+.settings-item{display:flex;flex-direction:column;gap:6px;}
+.settings-label{font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;}
+.settings-input{padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;color:var(--text);background:var(--bg);outline:none;width:100%;transition:border-color var(--ease);}
+.settings-input:focus{border-color:var(--navy);background:var(--white);}
+.color-row{display:flex;align-items:center;gap:8px;}
+.color-preview{width:36px;height:36px;border-radius:var(--radius-sm);border:2px solid var(--border);cursor:pointer;flex-shrink:0;}
 </style>
 </head>
 <body>
 
-<!-- =====================================================
+<!-- ═══════════════════════════════════════════════════════════
   TELA DE LOGIN
-  ===================================================== -->
+  ─ Lado esquerdo: branding/visual  |  Lado direito: formulário
+════════════════════════════════════════════════════════════════ -->
 <div id="login-screen">
-  <div class="login-card">
-    <img class="login-logo"
-      src="data:image/webp;base64,UklGRphAAABXRUJQVlA4WAoAAAAwAAAAMQIAeQAAVlA4THlAAAAvMUIeEA11IaL/wRKQpKiMiGh4om1b1dts2/raRyzLUhQzxKGbmZnR8DDzU32e2vOUmLnKzIwB083MzMwcThyDLF97ryafy9J1yQ/qqXigtu2YJGnbtvO6IiLZGtu2PYWxbXtaY9u2WmN7WlXV7q6xbZtPP9WlzIzMjPs8Md3atmxvm33e7/t+oE8modmCMKOhqKiSS+OM+7866zjTcjgxQ5kxzDEIP3if+/QACgBBR7JtraRqUrtqyrbZLNu2bdu2bdu2bdu2bVeqFViQJNVtqnZtcjy0l1ACnYwjfj1Jt61aem1bXxtTPsXMDEGlQNGFYmaWwisTKxMrzsy8fjBbqWBmZl7LffZm7nP0PnCZPEjntq1j2zPPdb93jM7o8hvSpbL9mVVslqlt27aNTpWT0qUf3/d1Hcratq1to/uVwsmuw8y4KgSGecrLOcpZFocZk7SrgaNgkmTr/6gBA0BQjb7hxd3Ce7Nt27Zt1862bd8vhtlGODvXebbVmh0s2FarOt5n26gnR2rwBPCflm3bYdtmP3r+QzbucowHgpBt9a8RFGgBINhGv5rdK2arnG2dOdu2bZtvxdm2Ztu2ndmGLNh247bRDLNW5gXEcAEB0P1FEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADcdswLqcvmLKOPE990/Kunt1ZS//KUF2JOMSyaZhENF/w88fRnqx078Y01Wyip12+/Fv6eq2/bRegf0eihsiKJkMaq40c/3/mbjntt/JYJ//Fp13N3w8n8COlCZUVENZEVEWUw7sSRz08+dsJr7bdGUv/ysBciDg7ZHRHaLgguphRZZMXUbGswHrIiorK0O3HkcxvL5J0aR9773z+3QPh3T7yWk6wMTRZBRDVDMZWBbatHJofFYDKcXd6RFRGVlQpt45EDr37656O95MS3P211pP7yidcCUatRRduFBqXIIiuKaWpas+vHIqgxdJu1cODI2eUdWRFRWSPXStucOvXU5xIf+eDrT7c2+OdP/tKfjLUlmzoqisoiRbdZMxuLrqYaK8XUDKFiiG0HT5xb2siKiJLSte7MK572xV9fftKb17Yy+MdHXR8YmQElaS1KVhNd1dR0msjKosZQTIGuFkVVQzHNr5w4v7iWPSIqK/EHbZw4edTzxY4e/9qeLYvU7x17PVkJa2JItoxqjZK0FpObNbERamiitpVSU42VYqqxUkxF1RiKmlvZurC41kYRUVmJktUdp572xTpHTnpz2RYFf+c5X6ocmUVRiZytWouS1VpMbRA1tEaNoahSU20rpaYaK6WmUlViKipUUTNri4vzQx0PEZWVcK2Npaee/mzvIye+MXwrIvVLr/7dwOLB1awo9SOjZLUWJStjKDm0NtTRUIbqhimKFhGqtqFUNVHbUKqKqaiIKmpqvVbnhjqOiMqKFhl24ugXZh877tXmWw/87RfdTFgsW0vJVJJs1VqULNbCUPvQDVPt0Q3TYDR0wzRoK11NoVpEjaGo2qJUFVNR1VBMk+s1mMRgEhGVFXI2O3nks9vn1n9R+QUf/V7oFgN/85W/l60Mc2tU4kZGySqJgB1Ea1Gyah9KTrVHSWofSlaNoahQpSpUUX2yiQi6zZpcny7NDRGVFSmlzs9dPPKKp7wQ8+UfevX9lgJ/9bXXG5Uh80tWSbJVa9ENQ9SaqNaiZLUWJau1oeRUe5SkDFWySlJMLSJQamqGFlFjpatFbSuhiiozptamS/OhkRVJ1sG4p04e+xvJjr7/lUdbB6lfevWXQ4zfmdINbZ5RrUXJKhlhjbXWomRlq2G0RusRSTdMNYaiSk21DaWqGSJq0Na6WkRQaqqxUkyT07o0P2iVFaqpzZYzJ448"
-      alt="Quimianastácio" onerror="this.style.display='none'">
-    <div class="login-title">Price Index</div>
-    <div class="login-subtitle">Sistema de Gestão de Cotações</div>
-    <form class="login-form" onsubmit="handleLogin(event)">
-      <div>
-        <label class="form-label">E-mail</label>
-        <input class="form-input" type="email" id="login-email" placeholder="seu@email.com" required>
+
+  <!-- Painel visual -->
+  <div class="login-visual">
+    <div class="login-grid"></div>
+    <div class="login-brand">
+      <img class="login-brand-logo" id="login-logo-img"
+        src="data:image/webp;base64,UklGRphAAABXRUJQVlA4WAoAAAAwAAAAMQIAeQAAVlA4THlAAAAvMUIeEA11IaL/wRKQpKiMiGh4om1b1dts2/raRyzLUhQzxKGbmZnR8DDzU32e2vOUmLnKzIwB083MzMwcThyDLF97ryafy9J1yQ/qqXigtu2YJGnbtvO6IiLZGtu2PYWxbXtaY9u2WmN7WlXV7q6xbZtPP9WlzIzMjPs8Md3atmxvm33e7/t+oE8modmCMKOhqKiSS+OM+7866zjTcjgxQ5kxzDEIP3if+/QACgBBR7JtraRqUrtqyrbZLNu2bdu2bdu2bdu2bVeqFViQJNVtqnZtcjy0l1ACnYwjfj1Jt61aem1bXxtTPsXMDEGlQNGFYmaWwisTKxMrzsy8fjBbqWBmZl7LffZm7nP0PnCZPEjntq1j2zPPdb93jM7o8hvSpbL9mVVslqlt27aNTpWT0qUf3/d1Hcratq1to/uVwsmuw8y4KgSGecrLOcpZFocZk7SrgaNgkmTr/6gBA0BQjb7hxd3Ce7Nt27Zt1862bd8vhtlGODvXebbVmh0s2FarOt5n26gnR2rwBPCflm3bYdtmP3r+QzbucowHgpBt9a8RFGgBINhGv5rdK2arnG2dOdu2bZtvxdm2Ztu2ndmGLNh247bRDLNW5gXEcAEB0P1FEAAA"
+        alt="Quimianastácio" onerror="this.style.display='none'">
+      <div class="login-brand-title">Price <span>Index</span></div>
+      <div class="login-brand-sub">Sistema de Gestão de Cotações</div>
+    </div>
+    <div class="login-stats">
+      <div class="login-stat">
+        <div class="login-stat-val" id="ls-total">–</div>
+        <div class="login-stat-lbl">Cotações</div>
       </div>
-      <div>
-        <label class="form-label">Senha</label>
-        <input class="form-input" type="password" id="login-password" placeholder="••••••••" required>
+      <div class="login-stat">
+        <div class="login-stat-val" id="ls-paises">–</div>
+        <div class="login-stat-lbl">Países</div>
       </div>
-      <p class="login-error" id="login-error">E-mail ou senha inválidos.</p>
-      <button class="btn-login" type="submit" id="btn-login-submit">
-        <span id="login-btn-text">Entrar</span>
+      <div class="login-stat">
+        <div class="login-stat-val" id="ls-mes">–</div>
+        <div class="login-stat-lbl">Este mês</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Painel formulário -->
+  <div class="login-form-panel">
+    <div class="login-form-tag">Acesso Restrito</div>
+    <div class="login-form-title">Bem-vindo de volta 👋</div>
+    <div class="login-form-sub">Entre com suas credenciais para continuar</div>
+
+    <form style="width:100%" onsubmit="handleLogin(event)">
+      <div class="lf-group">
+        <label class="lf-label">E-mail</label>
+        <input class="lf-input" type="email" id="login-email" placeholder="seu@quimicanastacio.com.br" required autocomplete="email">
+      </div>
+      <div class="lf-group">
+        <label class="lf-label">Senha</label>
+        <input class="lf-input" type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <p class="login-error" id="login-error">E-mail ou senha incorretos.</p>
+      <button class="btn-login-submit" type="submit" id="btn-login">
+        <span id="login-btn-txt">Entrar no sistema</span>
       </button>
     </form>
   </div>
 </div>
 
-<!-- =====================================================
-  APP PRINCIPAL (exibido após login)
-  ===================================================== -->
+<!-- ═══════════════════════════════════════════════════════════
+  APP PRINCIPAL
+════════════════════════════════════════════════════════════════ -->
 <div id="app">
 
   <!-- SIDEBAR -->
   <nav class="sidebar">
-    <div class="sidebar-logo">
-      <img src="data:image/webp;base64,UklGRphAAABXRUJQVlA4WAoAAAAwAAAAMQIAeQAAVlA4THlAAAAvMUIeEA11IaL/wRKQpKiMiGh4om1b1dts2/raRyzLUhQzxKGbmZnR8DDzU32e2vOUmLnKzIwB083MzMwcThyDLF97ryafy9J1yQ/qqXigtu2YJGnbtvO6IiLZGtu2PYWxbXtaY9u2WmN7WlXV7q6xbZtPP9WlzIzMjPs8Md3atmxvm33e7/t+oE8modmCMKOhqKiSS+OM" alt="Logo">
-      <div class="sidebar-badge">PRO</div>
+    <div class="sb-logo">
+      <img src="data:image/webp;base64,UklGRphAAABXRUJQVlA4WAoAAAAwAAAAMQIAeQAAVlA4THlAAAAvMUIeEA11IaL/wRKQpKiMiGh4om1b1dts2/raRyzLUhQzxKGbmZnR8DDzU32e2vOUmLnKzIwB083MzMwcThyDLF97ryafy9J1yQ/qqXigtu2YJGnbtvO6IiLZGtu2PYWxbXtaY9u2WmN7WlXV7q6xbZtPP9WlzIzMjPs8Md3atmxvm33e7/t+oE8modmCMKOhqKiSS+OM" alt="Logo" onerror="this.style.display='none'">
+      <div class="sb-logo-badge">PRO</div>
     </div>
 
-    <div class="sidebar-nav">
-      <!-- PRINCIPAL -->
-      <div class="nav-section">Principal</div>
-      <div class="nav-item active" onclick="navigate('dashboard')">
-        <span class="icon">📊</span> Dashboard
-      </div>
-      <div class="nav-item" onclick="navigate('cotacoes')">
-        <span class="icon">📋</span> Nova Cotação
-      </div>
-      <div class="nav-item" onclick="navigate('historico')">
-        <span class="icon">🕒</span> Histórico
-      </div>
+    <div class="sb-nav">
+      <div class="sb-section">Principal</div>
+      <div class="sb-item active" onclick="navigate('dashboard',this)"><span class="ico">📊</span>Dashboard</div>
+      <div class="sb-item" onclick="navigate('cotacoes',this)"><span class="ico">💰</span>Nova Cotação</div>
+      <div class="sb-item" onclick="navigate('historico',this)"><span class="ico">🕒</span>Histórico</div>
 
-      <!-- FORNECEDORES -->
-      <div class="nav-section" style="margin-top:8px">Fornecedores</div>
-      <div class="nav-item" onclick="navigate('suppliers')">
-        <span class="icon">🏭</span> Forn. Possíveis
-      </div>
+      <div class="sb-section" style="margin-top:8px">Fornecedores</div>
+      <div class="sb-item" onclick="navigate('suppliers',this)"><span class="ico">🏭</span>Forn. Possíveis</div>
 
-      <!-- ADMIN - visível apenas para zeus/admin -->
-      <div class="nav-section nav-admin" style="margin-top:8px">Administração</div>
-      <div class="nav-item nav-admin" onclick="navigate('usuarios')">
-        <span class="icon">👥</span> Usuários
-      </div>
-      <div class="nav-item nav-zeus" onclick="navigate('importar')">
-        <span class="icon">📥</span> Importar Excel
-      </div>
+      <div class="sb-section nav-admin" style="margin-top:8px">Administração</div>
+      <div class="sb-item nav-admin" onclick="navigate('usuarios',this)"><span class="ico">👥</span>Usuários</div>
+      <div class="sb-item nav-zeus" onclick="navigate('importar',this)"><span class="ico">📥</span>Importar Excel</div>
+      <div class="sb-item nav-zeus" onclick="navigate('settings',this)"><span class="ico">⚙️</span>Configurações</div>
     </div>
 
-    <div class="sidebar-user">
-      <div class="user-avatar" id="sidebar-avatar">?</div>
-      <div class="user-info">
-        <div class="user-name" id="sidebar-name">–</div>
-        <div class="user-role" id="sidebar-role">–</div>
+    <div class="sb-user">
+      <div class="sb-avatar" id="sb-avatar">?</div>
+      <div class="sb-user-info">
+        <div class="sb-user-name" id="sb-name">–</div>
+        <div class="sb-user-role" id="sb-role">–</div>
       </div>
       <button class="btn-logout" onclick="handleLogout()" title="Sair">⏻</button>
     </div>
   </nav>
 
-  <!-- CONTEÚDO PRINCIPAL -->
+  <!-- CONTEÚDO -->
   <main class="main-content">
     <div class="topbar">
-      <div>
+      <div class="topbar-left">
         <div class="topbar-title" id="page-title">Dashboard</div>
         <div class="topbar-sub" id="page-sub">Visão geral das cotações</div>
       </div>
       <div class="topbar-actions" id="topbar-actions"></div>
     </div>
-
-    <div class="page-content" id="page-content">
-      <!-- conteúdo renderizado via JS -->
-    </div>
+    <div class="page-body" id="page-content"></div>
   </main>
 </div>
 
-<!-- =====================================================
-  MODAL: FORMULÁRIO DE COTAÇÃO
-  ===================================================== -->
-<div class="modal-overlay" id="modal-cotacao">
+<!-- ═══════════════════════════════════════════════════════════
+  MODAL: COTAÇÃO
+  Possui duas abas: SKU (dropdowns) e Manual (texto livre)
+════════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-cot">
   <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">💰 Cotação SKU</div>
-      <button class="modal-close" onclick="closeModal('modal-cotacao')">✕</button>
+    <div class="modal-head">
+      <div>
+        <div class="modal-head-title">💰 Cotação SKU</div>
+        <div class="modal-head-sub">Preencha os dados da cotação de compra</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-cot')">✕</button>
     </div>
     <div class="modal-body">
-      <!-- Toggle: usar histórico -->
-      <div class="history-toggle" id="history-toggle-wrap">
-        <input type="checkbox" id="use-history" checked onchange="toggleHistory()">
-        <label for="use-history">Preencher automaticamente com base no histórico (País + Produto + Fabricante + Embalagem)</label>
+
+      <!-- Seletor de tipo de cotação -->
+      <div class="cot-type-tabs">
+        <div class="cot-tab active" onclick="setCotType('sku',this)">📦 Cotação SKU</div>
+        <div class="cot-tab" onclick="setCotType('manual',this)">✏️ Cotação Manual</div>
       </div>
 
-      <!-- BLOCO 1: Identificação -->
-      <div class="form-section-title">📌 Identificação</div>
-      <div class="form-grid">
-        <div class="field-group">
-          <label class="field-label">1. Data Cotação <span class="required">*</span></label>
-          <input type="date" class="field-input" id="f-data" required>
-        </div>
-        <div class="field-group">
-          <label class="field-label">2. País <span class="required">*</span></label>
-          <!-- Busca em: tb_price_index_filter.pais -->
-          <select class="field-select" id="f-pais" required onchange="onKeyFieldChange()">
-            <option value="">Selecione...</option>
-          </select>
-        </div>
-        <div class="field-group">
-          <label class="field-label">3. Produto <span class="required">*</span></label>
-          <!-- Busca em: tb_price_index_planning.product_description -->
-          <select class="field-select" id="f-produto" required onchange="onKeyFieldChange()">
-            <option value="">Selecione...</option>
-          </select>
-        </div>
-        <div class="field-group">
-          <label class="field-label">4. Fabricante <span class="required">*</span></label>
-          <!-- Busca em: tb_price_index_product.manufacturer_desc -->
-          <select class="field-select" id="f-fabricante" required onchange="onKeyFieldChange()">
-            <option value="">Selecione...</option>
-          </select>
-        </div>
-        <div class="field-group">
-          <label class="field-label">5. Embalagem <span class="required">*</span></label>
-          <!-- Busca em: tb_price_index_product.packaging_description -->
-          <select class="field-select" id="f-embalagem" required onchange="onKeyFieldChange()">
-            <option value="">Selecione...</option>
-          </select>
-        </div>
+      <!-- Toggle histórico (apenas no modo SKU) -->
+      <div class="hist-toggle" id="hist-toggle">
+        <input type="checkbox" id="use-hist" checked onchange="toggleHist()">
+        <label for="use-hist">Preencher campos automaticamente com base no histórico (País + Produto + Fabricante + Embalagem)</label>
       </div>
 
-      <!-- BLOCO 2: Produto -->
-      <div class="form-section-title">📦 Produto</div>
-      <div class="form-grid">
-        <div class="field-group">
-          <label class="field-label">6. País Fabricante <span class="required">*</span></label>
-          <!-- Busca em: tb_price_index_product.manufacturer_country -->
-          <select class="field-select" id="f-pais-fab" required>
-            <option value="">Selecione...</option>
-          </select>
+      <!-- SEÇÃO 1: Identificação -->
+      <div class="fs-title">📌 Identificação</div>
+      <div class="fg fg-5">
+        <!-- Data: não permite data futura -->
+        <div class="fi-group">
+          <label class="fi-label">1. Data Cotação <span class="req">*</span></label>
+          <input type="date" class="fi-input" id="f-data" required>
         </div>
-        <div class="field-group">
-          <label class="field-label">7. Cód. Produto <span class="required">*</span></label>
-          <!-- Busca em: tb_price_index_product.sku -->
-          <select class="field-select" id="f-codigo" required>
-            <option value="">Selecione...</option>
-          </select>
+        <!-- Semana calculada automaticamente pela data -->
+        <div class="fi-group">
+          <label class="fi-label">Semana</label>
+          <input type="text" class="fi-input calc" id="f-semana" readonly placeholder="Auto">
         </div>
-        <div class="field-group">
-          <label class="field-label">8. Segmento</label>
-          <!-- Busca em: tb_price_index_product.segment -->
-          <select class="field-select" id="f-segmento">
-            <option value="">Selecione...</option>
-          </select>
+        <!-- País: autocomplete em tb_price_index_filter.pais -->
+        <div class="fi-group">
+          <label class="fi-label">2. País <span class="req">*</span></label>
+          <div class="ac-wrap">
+            <input class="fi-input ac-input" id="f-pais" placeholder="Buscar país..." autocomplete="off" oninput="acFilter('f-pais','f-pais-list',_dd.pais)" onfocus="acOpen('f-pais-list')" required onchange="onKeyChange()">
+            <span class="ac-icon">▾</span>
+            <div class="ac-list" id="f-pais-list"></div>
+          </div>
         </div>
-        <div class="field-group">
-          <label class="field-label">9. Fornecedor</label>
-          <!-- Busca em: tb_price_index_filter.fantasia -->
-          <select class="field-select" id="f-fornecedor">
-            <option value="">Selecione...</option>
-          </select>
+        <!-- Produto: autocomplete em tb_price_index_planning.product_description -->
+        <div class="fi-group">
+          <label class="fi-label">3. Produto <span class="req">*</span></label>
+          <div class="ac-wrap">
+            <input class="fi-input ac-input" id="f-produto" placeholder="Buscar produto..." autocomplete="off" oninput="acFilter('f-produto','f-produto-list',_dd.produto)" onfocus="acOpen('f-produto-list')" required onchange="onKeyChange()">
+            <span class="ac-icon">▾</span>
+            <div class="ac-list" id="f-produto-list"></div>
+          </div>
         </div>
-        <div class="field-group">
-          <label class="field-label">10. Porto Origem</label>
-          <!-- Busca em: tb_price_index_filter.origem -->
-          <select class="field-select" id="f-porto-orig">
-            <option value="">Selecione...</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- BLOCO 3: Logística -->
-      <div class="form-section-title">🚢 Logística</div>
-      <div class="form-grid">
-        <div class="field-group">
-          <label class="field-label">11. Porto Destino</label>
-          <!-- Busca em: tb_price_index_filter.destino -->
-          <select class="field-select" id="f-porto-dest">
-            <option value="">Selecione...</option>
-          </select>
-        </div>
-        <div class="field-group">
-          <label class="field-label">12. Modal</label>
-          <!-- Busca em: tb_price_index_filter.modal -->
-          <select class="field-select" id="f-modal">
-            <option value="">Selecione...</option>
-          </select>
-        </div>
-        <div class="field-group">
-          <label class="field-label">13. Container</label>
-          <!-- Busca em: tb_price_index_filter.container -->
-          <select class="field-select" id="f-container">
-            <option value="">Selecione...</option>
-          </select>
-        </div>
-        <div class="field-group">
-          <label class="field-label">14. Qtd. Container</label>
-          <input type="number" class="field-input" id="f-qtd-container" min="0" step="1" oninput="calcCFR()">
-        </div>
-        <div class="field-group">
-          <label class="field-label">15. Etiqueta</label>
-          <div class="radio-group">
-            <label class="radio-option"><input type="radio" name="etiqueta" value="Sim"> Sim</label>
-            <label class="radio-option"><input type="radio" name="etiqueta" value="Não" checked> Não</label>
+        <!-- Fabricante: autocomplete em tb_price_index_product.manufacturer_desc -->
+        <div class="fi-group">
+          <label class="fi-label">4. Fabricante <span class="req">*</span></label>
+          <div class="ac-wrap">
+            <input class="fi-input ac-input" id="f-fabricante" placeholder="Buscar fabricante..." autocomplete="off" oninput="acFilter('f-fabricante','f-fab-list',_dd.fabricante)" onfocus="acOpen('f-fab-list')" required onchange="onKeyChange()">
+            <span class="ac-icon">▾</span>
+            <div class="ac-list" id="f-fab-list"></div>
           </div>
         </div>
       </div>
 
-      <div class="form-grid form-grid-4">
-        <div class="field-group">
-          <label class="field-label">16. Paletizado</label>
-          <div class="radio-group">
-            <label class="radio-option"><input type="radio" name="paletizado" value="Sim"> Sim</label>
-            <label class="radio-option"><input type="radio" name="paletizado" value="Não" checked> Não</label>
+      <!-- SEÇÃO 2: Produto -->
+      <div class="fs-title">📦 Produto</div>
+      <div class="fg fg-5">
+        <!-- Embalagem: autocomplete em tb_price_index_product.packaging_description -->
+        <div class="fi-group">
+          <label class="fi-label">5. Embalagem <span class="req">*</span></label>
+          <div class="ac-wrap">
+            <input class="fi-input ac-input" id="f-embalagem" placeholder="Buscar embalagem..." autocomplete="off" oninput="acFilter('f-embalagem','f-emb-list',_dd.embalagem)" onfocus="acOpen('f-emb-list')" required onchange="onKeyChange()">
+            <span class="ac-icon">▾</span>
+            <div class="ac-list" id="f-emb-list"></div>
           </div>
         </div>
-        <div class="field-group">
-          <label class="field-label">17. IMO</label>
-          <div class="radio-group">
-            <label class="radio-option"><input type="radio" name="imo" value="Sim"> Sim</label>
-            <label class="radio-option"><input type="radio" name="imo" value="Não" checked> Não</label>
+        <!-- País Fabricante: autocomplete em tb_price_index_product.manufacturer_country -->
+        <div class="fi-group">
+          <label class="fi-label">6. País Fabricante <span class="req">*</span></label>
+          <div class="ac-wrap">
+            <input class="fi-input ac-input" id="f-pais-fab" placeholder="País..." autocomplete="off" oninput="acFilter('f-pais-fab','f-pfab-list',_dd.paisFab)" onfocus="acOpen('f-pfab-list')" required>
+            <span class="ac-icon">▾</span>
+            <div class="ac-list" id="f-pfab-list"></div>
           </div>
         </div>
-        <div class="field-group">
-          <label class="field-label">18. Comprador</label>
-          <!-- Busca em: tb_price_index_filter.comprador -->
-          <select class="field-select" id="f-comprador">
-            <option value="">Selecione...</option>
-          </select>
+        <!-- Código Produto: autocomplete em tb_price_index_product.sku -->
+        <div class="fi-group">
+          <label class="fi-label">7. Cód. Produto <span class="req">*</span></label>
+          <div class="ac-wrap">
+            <input class="fi-input ac-input" id="f-codigo" placeholder="SKU..." autocomplete="off" oninput="acFilter('f-codigo','f-cod-list',_dd.codigo)" onfocus="acOpen('f-cod-list')" required>
+            <span class="ac-icon">▾</span>
+            <div class="ac-list" id="f-cod-list"></div>
+          </div>
         </div>
-        <div class="field-group">
-          <label class="field-label">19. Motivo</label>
-          <!-- Busca em: tb_price_index_filter.status -->
-          <select class="field-select" id="f-motivo">
-            <option value="">Selecione...</option>
-          </select>
+        <!-- Segmento: autocomplete em tb_price_index_product.segment -->
+        <div class="fi-group">
+          <label class="fi-label">8. Segmento</label>
+          <div class="ac-wrap">
+            <input class="fi-input ac-input" id="f-segmento" placeholder="Segmento..." autocomplete="off" oninput="acFilter('f-segmento','f-seg-list',_dd.segmento)" onfocus="acOpen('f-seg-list')">
+            <span class="ac-icon">▾</span>
+            <div class="ac-list" id="f-seg-list"></div>
+          </div>
         </div>
-      </div>
-
-      <!-- BLOCO 4: Valores -->
-      <div class="form-section-title">💲 Valores</div>
-      <div class="form-grid">
-        <div class="field-group">
-          <label class="field-label">20. Cond. Pag <span class="required">*</span></label>
-          <!-- Campo livre - digitado pelo usuário -->
-          <input type="text" class="field-input" id="f-cond-pag" placeholder="Ex: 30/60 dias">
-        </div>
-        <div class="field-group">
-          <label class="field-label">21. Cotação CFR</label>
-          <input type="number" class="field-input" id="f-cfr" step="0.01" oninput="calcCFR()">
-        </div>
-        <div class="field-group">
-          <label class="field-label">22. Cotação FOB</label>
-          <input type="number" class="field-input" id="f-fob" step="0.01" oninput="calcCFR()">
-        </div>
-        <div class="field-group">
-          <label class="field-label">23. Valor Frete</label>
-          <input type="number" class="field-input" id="f-frete" step="0.01" oninput="calcCFR()">
-        </div>
-        <div class="field-group">
-          <label class="field-label">24. Valor IMO</label>
-          <input type="number" class="field-input" id="f-imo-val" step="0.01" oninput="calcCFR()">
+        <!-- Fornecedor: autocomplete em tb_price_index_filter.fantasia -->
+        <div class="fi-group">
+          <label class="fi-label">9. Fornecedor</label>
+          <div class="ac-wrap">
+            <input class="fi-input ac-input" id="f-fornecedor" placeholder="Fornecedor..." autocomplete="off" oninput="acFilter('f-fornecedor','f-forn-list',_dd.fornecedor)" onfocus="acOpen('f-forn-list')">
+            <span class="ac-icon">▾</span>
+            <div class="ac-list" id="f-forn-list"></div>
+          </div>
         </div>
       </div>
 
-      <div class="form-grid form-grid-3">
-        <div class="field-group">
-          <label class="field-label">25. CFR Anastácio</label>
-          <!-- Calculado automaticamente: ((Frete + IMO) / Qtd) + FOB -->
-          <input type="text" class="field-input cfr-calc" id="f-cfr-anastacio" readonly placeholder="Calculado automaticamente">
+      <!-- SEÇÃO 3: Logística -->
+      <div class="fs-title">🚢 Logística</div>
+      <div class="fg fg-5">
+        <!-- Porto Origem: autocomplete em tb_price_index_filter.origem -->
+        <div class="fi-group">
+          <label class="fi-label">10. Porto Origem</label>
+          <div class="ac-wrap">
+            <input class="fi-input ac-input" id="f-porto-orig" placeholder="Porto..." autocomplete="off" oninput="acFilter('f-porto-orig','f-porig-list',_dd.portoOrig)" onfocus="acOpen('f-porig-list')">
+            <span class="ac-icon">▾</span>
+            <div class="ac-list" id="f-porig-list"></div>
+          </div>
         </div>
-        <div class="field-group">
-          <label class="field-label">Melhor CFR</label>
-          <input type="number" class="field-input" id="f-best-cfr" step="0.01">
+        <!-- Porto Destino: autocomplete em tb_price_index_filter.destino -->
+        <div class="fi-group">
+          <label class="fi-label">11. Porto Destino</label>
+          <div class="ac-wrap">
+            <input class="fi-input ac-input" id="f-porto-dest" placeholder="Destino..." autocomplete="off" oninput="acFilter('f-porto-dest','f-pdest-list',_dd.portoDest)" onfocus="acOpen('f-pdest-list')">
+            <span class="ac-icon">▾</span>
+            <div class="ac-list" id="f-pdest-list"></div>
+          </div>
         </div>
-        <div class="field-group">
-          <label class="field-label">Registration</label>
-          <input type="text" class="field-input" id="f-registration">
+        <!-- Modal: autocomplete em tb_price_index_filter.modal -->
+        <div class="fi-group">
+          <label class="fi-label">12. Modal</label>
+          <div class="ac-wrap">
+            <input class="fi-input ac-input" id="f-modal" placeholder="Aéreo/Marítimo..." autocomplete="off" oninput="acFilter('f-modal','f-modal-list',_dd.modal)" onfocus="acOpen('f-modal-list')">
+            <span class="ac-icon">▾</span>
+            <div class="ac-list" id="f-modal-list"></div>
+          </div>
+        </div>
+        <!-- Container: autocomplete em tb_price_index_filter.container -->
+        <div class="fi-group">
+          <label class="fi-label">13. Container</label>
+          <div class="ac-wrap">
+            <input class="fi-input ac-input" id="f-container" placeholder="20'/40'..." autocomplete="off" oninput="acFilter('f-container','f-cont-list',_dd.container)" onfocus="acOpen('f-cont-list')">
+            <span class="ac-icon">▾</span>
+            <div class="ac-list" id="f-cont-list"></div>
+          </div>
+        </div>
+        <div class="fi-group">
+          <label class="fi-label">14. Qtd. Container</label>
+          <input type="number" class="fi-input" id="f-qtd" min="0" step="1" oninput="calcCFR()">
         </div>
       </div>
 
-      <div class="field-group">
-        <label class="field-label">Comentários</label>
-        <textarea class="field-textarea" id="f-comentarios" placeholder="Observações adicionais..."></textarea>
+      <div class="fg fg-4">
+        <div class="fi-group">
+          <label class="fi-label">15. Etiqueta</label>
+          <div class="fi-radio">
+            <label><input type="radio" name="etiq" value="Sim"> Sim</label>
+            <label><input type="radio" name="etiq" value="Não" checked> Não</label>
+          </div>
+        </div>
+        <div class="fi-group">
+          <label class="fi-label">16. Paletizado</label>
+          <div class="fi-radio">
+            <label><input type="radio" name="palet" value="Sim"> Sim</label>
+            <label><input type="radio" name="palet" value="Não" checked> Não</label>
+          </div>
+        </div>
+        <div class="fi-group">
+          <label class="fi-label">17. IMO</label>
+          <div class="fi-radio">
+            <label><input type="radio" name="imo-r" value="Sim"> Sim</label>
+            <label><input type="radio" name="imo-r" value="Não" checked> Não</label>
+          </div>
+        </div>
+        <!-- Comprador: autocomplete em tb_price_index_filter.comprador -->
+        <div class="fi-group">
+          <label class="fi-label">18. Comprador</label>
+          <div class="ac-wrap">
+            <input class="fi-input ac-input" id="f-comprador" placeholder="Comprador..." autocomplete="off" oninput="acFilter('f-comprador','f-comp-list',_dd.comprador)" onfocus="acOpen('f-comp-list')">
+            <span class="ac-icon">▾</span>
+            <div class="ac-list" id="f-comp-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fg fg-4">
+        <!-- Motivo: autocomplete em tb_price_index_filter.status -->
+        <div class="fi-group">
+          <label class="fi-label">19. Motivo</label>
+          <div class="ac-wrap">
+            <input class="fi-input ac-input" id="f-motivo" placeholder="Motivo..." autocomplete="off" oninput="acFilter('f-motivo','f-mot-list',_dd.motivo)" onfocus="acOpen('f-mot-list')">
+            <span class="ac-icon">▾</span>
+            <div class="ac-list" id="f-mot-list"></div>
+          </div>
+        </div>
+        <!-- Cond. Pag: campo livre (digitado pelo usuário) -->
+        <div class="fi-group">
+          <label class="fi-label">20. Cond. Pagamento <span class="req">*</span></label>
+          <input type="text" class="fi-input" id="f-cond" placeholder="Ex: 30/60 dias">
+        </div>
+        <div class="fi-group">
+          <label class="fi-label">21. Cotação CFR</label>
+          <input type="number" class="fi-input" id="f-cfr" step="0.01" oninput="calcCFR()">
+        </div>
+        <div class="fi-group">
+          <label class="fi-label">22. Cotação FOB</label>
+          <input type="number" class="fi-input" id="f-fob" step="0.01" oninput="calcCFR()">
+        </div>
+      </div>
+
+      <!-- SEÇÃO 4: Valores -->
+      <div class="fs-title">💲 Valores</div>
+      <div class="fg fg-5">
+        <div class="fi-group">
+          <label class="fi-label">23. Valor Frete</label>
+          <input type="number" class="fi-input" id="f-frete" step="0.01" oninput="calcCFR()">
+        </div>
+        <div class="fi-group">
+          <label class="fi-label">24. Valor IMO</label>
+          <input type="number" class="fi-input" id="f-imo-v" step="0.01" oninput="calcCFR()">
+        </div>
+        <!-- CFR Anastácio: calculado automaticamente ((Frete+IMO)/Qtd)+FOB -->
+        <div class="fi-group">
+          <label class="fi-label">25. CFR Anastácio</label>
+          <input type="text" class="fi-input calc" id="f-cfr-anast" readonly placeholder="Auto">
+        </div>
+        <div class="fi-group">
+          <label class="fi-label">Melhor CFR</label>
+          <input type="number" class="fi-input" id="f-best-cfr" step="0.01">
+        </div>
+        <div class="fi-group">
+          <label class="fi-label">Registration</label>
+          <input type="text" class="fi-input" id="f-reg">
+        </div>
+      </div>
+
+      <div class="fg fg-2">
+        <div class="fi-group sp2">
+          <label class="fi-label">Comentários</label>
+          <textarea class="fi-textarea" id="f-comments" placeholder="Observações adicionais..."></textarea>
+        </div>
       </div>
     </div>
 
-    <div class="modal-footer">
-      <div style="font-size:12px;color:var(--text-light)">
-        <span class="required">*</span> Campos obrigatórios
-      </div>
-      <div class="flex gap-2">
-        <button class="btn btn-outline" onclick="clearForm()">🧹 Limpar</button>
-        <button class="btn btn-primary" onclick="saveCotacao()">✔ Salvar Cotação</button>
+    <div class="modal-foot">
+      <div style="font-size:12px;color:var(--text-3)"><span style="color:var(--red)">*</span> Campos obrigatórios</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="clearCotForm()">🧹 Limpar</button>
+        <button class="btn btn-navy" onclick="saveCot()">✔ Salvar Cotação</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- =====================================================
-  MODAL: USUÁRIO (criar/editar)
-  ===================================================== -->
-<div class="modal-overlay" id="modal-usuario">
-  <div class="modal" style="max-width:520px">
-    <div class="modal-header">
-      <div class="modal-title">👤 <span id="modal-user-title">Novo Usuário</span></div>
-      <button class="modal-close" onclick="closeModal('modal-usuario')">✕</button>
+<!-- ═══════════════════════════════════════════════════════════
+  MODAL: USUÁRIO
+════════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-user">
+  <div class="modal modal-sm">
+    <div class="modal-head">
+      <div class="modal-head-title">👤 <span id="mu-title">Novo Usuário</span></div>
+      <button class="modal-close" onclick="closeModal('modal-user')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-grid form-grid-2">
-        <div class="field-group col-span-2">
-          <label class="field-label">Nome completo <span class="required">*</span></label>
-          <input type="text" class="field-input" id="u-name" placeholder="Nome do usuário">
+      <div class="fg fg-2">
+        <div class="fi-group sp2">
+          <label class="fi-label">Nome completo <span class="req">*</span></label>
+          <input type="text" class="fi-input" id="u-name" placeholder="Nome do usuário">
         </div>
-        <div class="field-group">
-          <label class="field-label">E-mail <span class="required">*</span></label>
-          <input type="email" class="field-input" id="u-email" placeholder="email@empresa.com">
+        <div class="fi-group">
+          <label class="fi-label">E-mail <span class="req">*</span></label>
+          <input type="email" class="fi-input" id="u-email">
         </div>
-        <div class="field-group">
-          <label class="field-label">Senha <span class="required">*</span></label>
-          <input type="password" class="field-input" id="u-password" placeholder="Senha de acesso">
+        <div class="fi-group">
+          <label class="fi-label">Senha</label>
+          <input type="password" class="fi-input" id="u-pass" placeholder="Deixe em branco para manter">
         </div>
-        <div class="field-group">
-          <label class="field-label">Nível de Acesso <span class="required">*</span></label>
-          <select class="field-select" id="u-nivel">
+        <div class="fi-group">
+          <label class="fi-label">Nível de Acesso <span class="req">*</span></label>
+          <select class="fi-select" id="u-nivel">
             <option value="visualizador">Visualizador/Editor</option>
             <option value="admin">Admin</option>
             <option value="zeus">Zeus</option>
           </select>
         </div>
-        <div class="field-group">
-          <label class="field-label">Segmento</label>
-          <!-- Controla quais dados o usuário visualiza -->
-          <select class="field-select" id="u-segmento">
-            <option value="">Todos (sem restrição)</option>
-          </select>
+        <div class="fi-group">
+          <!-- Segmento controla quais dados o usuário pode visualizar -->
+          <label class="fi-label">Segmento (restrição de dados)</label>
+          <div class="ac-wrap">
+            <input class="fi-input ac-input" id="u-seg" placeholder="Todos (sem restrição)" autocomplete="off" oninput="acFilter('u-seg','u-seg-list',_dd.segmento)" onfocus="acOpen('u-seg-list')">
+            <span class="ac-icon">▾</span>
+            <div class="ac-list" id="u-seg-list"></div>
+          </div>
         </div>
-        <div class="field-group col-span-2">
-          <label class="field-label">Status</label>
-          <div class="radio-group">
-            <label class="radio-option"><input type="radio" name="u-status" value="true" checked> Ativo</label>
-            <label class="radio-option"><input type="radio" name="u-status" value="false"> Desabilitado</label>
+        <div class="fi-group">
+          <label class="fi-label">Status</label>
+          <div class="fi-radio">
+            <label><input type="radio" name="u-ativo" value="true" checked> Ativo</label>
+            <label><input type="radio" name="u-ativo" value="false"> Desabilitado</label>
           </div>
         </div>
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('modal-usuario')">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveUsuario()">💾 Salvar</button>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-user')">Cancelar</button>
+      <button class="btn btn-navy" onclick="saveUser()">💾 Salvar</button>
     </div>
   </div>
 </div>
 
-<!-- TOAST CONTAINER -->
-<div class="toast-container" id="toast-container"></div>
+<div class="toast-wrap" id="toast-wrap"></div>
 
-<!-- =====================================================
-  JAVASCRIPT PRINCIPAL
-  ===================================================== -->
+<!-- ═══════════════════════════════════════════════════════════
+  JAVASCRIPT
+════════════════════════════════════════════════════════════════ -->
 <script>
-/* =====================================================
-   CONFIGURAÇÃO DO SUPABASE
-   Substitua pela URL e KEY do seu projeto Supabase:
-   Project Settings → API → Project URL e anon/public key
-   ===================================================== */
+/* ─────────────────────────────────────────────────────────────
+   CONFIGURAÇÕES GLOBAIS
+   Editar SUPABASE_URL e SUPABASE_KEY conforme seu projeto.
+   ───────────────────────────────────────────────────────────── */
 const SUPABASE_URL = 'https://lfgsvkuojyxmavrvyyec.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmZ3N2a3Vvanl4bWF2cnZ5eWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjM5MzUsImV4cCI6MjA5MDY5OTkzNX0.doehjMZBRmlRE3wKM4WlKupwipQwcOUJqbxROOPWMSc'; // Settings → API → anon public
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmZ3N2a3Vvanl4bWF2cnZ5eWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMjM5MzUsImV4cCI6MjA5MDY5OTkzNX0.doehjMZBRmlRE3wKM4WlKupwipQwcOUJqbxROOPWMSc';
 
-/* =====================================================
-   ESTADO GLOBAL DA APLICAÇÃO
-   ===================================================== */
-let currentUser = null;      // usuário logado
-let currentPage = 'dashboard'; // página ativa
-let editingId   = null;      // id do registro em edição
+/* ─────────────────────────────────────────────────────────────
+   ESTADO GLOBAL
+   ───────────────────────────────────────────────────────────── */
+let CU       = null;  // currentUser
+let PAGE     = 'dashboard';
+let EDIT_ID  = null;  // id do registro em edição
+let COT_TYPE = 'sku'; // tipo de cotação: 'sku' | 'manual'
 
-/* =====================================================
-   HELPER: REQUISIÇÕES PARA O SUPABASE (REST API)
-   ===================================================== */
-async function supabase(table, options = {}) {
-  // Monta URL com filtros, ordenação e limite
+/* _dd: cache dos dropdowns carregados do Supabase */
+const _dd = {
+  pais:[], produto:[], fabricante:[], embalagem:[], paisFab:[],
+  codigo:[], segmento:[], fornecedor:[], portoOrig:[], portoDest:[],
+  modal:[], container:[], comprador:[], motivo:[]
+};
+
+/* ─────────────────────────────────────────────────────────────
+   SUPABASE HELPER
+   Wrapper para fetch na REST API do Supabase.
+   options: { select, filter, order, limit, method, body, prefer }
+   ───────────────────────────────────────────────────────────── */
+async function sb(table, opts={}) {
   let url = `${SUPABASE_URL}/rest/v1/${table}`;
-  const params = [];
+  const p = [];
+  if(opts.select) p.push(`select=${opts.select}`);
+  if(opts.filter) Object.entries(opts.filter).forEach(([k,v])=>p.push(`${k}=eq.${encodeURIComponent(v)}`));
+  if(opts.neq)    p.push(`${opts.neq[0]}=neq.${opts.neq[1]}`);
+  if(opts.is)     p.push(`${opts.is[0]}=is.${opts.is[1]}`);
+  if(opts.order)  p.push(`order=${opts.order}`);
+  if(opts.limit)  p.push(`limit=${opts.limit}`);
+  if(p.length)    url += '?' + p.join('&');
 
-  if (options.select)  params.push(`select=${options.select}`);
-  if (options.filter)  Object.entries(options.filter).forEach(([k,v]) => params.push(`${k}=eq.${v}`));
-  if (options.order)   params.push(`order=${options.order}`);
-  if (options.limit)   params.push(`limit=${options.limit}`);
-  if (options.isFalse) params.push(`${options.isFalse}=is.false`);
-  if (params.length)   url += '?' + params.join('&');
-
-  const headers = {
+  const h = {
     'apikey': SUPABASE_KEY,
     'Authorization': `Bearer ${SUPABASE_KEY}`,
     'Content-Type': 'application/json',
-    'Prefer': options.prefer || 'return=representation'
+    'Prefer': opts.prefer || 'return=representation'
   };
-
   const res = await fetch(url, {
-    method: options.method || 'GET',
-    headers,
-    body: options.body ? JSON.stringify(options.body) : undefined
+    method: opts.method||'GET', headers:h,
+    body: opts.body ? JSON.stringify(opts.body) : undefined
   });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `Erro ${res.status}`);
+  if(!res.ok){
+    const e = await res.json().catch(()=>({}));
+    throw new Error(e.message||`HTTP ${res.status}`);
   }
-  return options.method === 'DELETE' ? null : res.json().catch(() => null);
+  return opts.method==='DELETE' ? null : res.json().catch(()=>null);
 }
 
-/* Atualiza (PATCH) um registro por id */
-async function supabaseUpdate(table, id, data) {
-  const url = `${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`;
-  const res = await fetch(url, {
-    method: 'PATCH',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation'
-    },
+/* PATCH por id */
+async function sbPatch(table, id, data) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+    method:'PATCH',
+    headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=representation'},
     body: JSON.stringify(data)
   });
   return res.json();
 }
 
-/* =====================================================
+/* ─────────────────────────────────────────────────────────────
+   AUTOCOMPLETE
+   acInit: pré-popula a lista; acFilter: filtra ao digitar;
+   acOpen: abre dropdown; acSelect: escolhe opção
+   ───────────────────────────────────────────────────────────── */
+function acInit(inputId, listId, options) {
+  const list = document.getElementById(listId);
+  if(!list) return;
+  list.innerHTML = options.length
+    ? options.map(o=>`<div class="ac-item" onclick="acSelect('${inputId}','${listId}','${o.replace(/'/g,"&#39;")}')">${o}</div>`).join('')
+    : '<div class="ac-empty">Sem opções</div>';
+}
+
+function acFilter(inputId, listId, options) {
+  const q = document.getElementById(inputId)?.value?.toLowerCase()||'';
+  const list = document.getElementById(listId);
+  if(!list) return;
+  const filtered = options.filter(o=>o.toLowerCase().includes(q));
+  list.innerHTML = filtered.length
+    ? filtered.map(o=>`<div class="ac-item" onclick="acSelect('${inputId}','${listId}','${o.replace(/'/g,"&#39;")}')">${o}</div>`).join('')
+    : '<div class="ac-empty">Sem resultados</div>';
+  acOpen(listId);
+}
+
+function acOpen(listId) {
+  // Fecha todos os outros e abre o atual
+  document.querySelectorAll('.ac-list').forEach(l=>l.classList.remove('open'));
+  document.getElementById(listId)?.classList.add('open');
+}
+
+function acSelect(inputId, listId, value) {
+  const el = document.getElementById(inputId);
+  if(el){ el.value = value; el.dispatchEvent(new Event('change')); }
+  document.getElementById(listId)?.classList.remove('open');
+}
+
+// Fecha autocompletes ao clicar fora
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.ac-wrap')) document.querySelectorAll('.ac-list').forEach(l=>l.classList.remove('open'));
+});
+
+/* ─────────────────────────────────────────────────────────────
    AUTENTICAÇÃO
    Tabela: tb_price_index_users
-   Campos: email, password, nivel_acesso, ativo, name, segmento
-   ===================================================== */
+   ───────────────────────────────────────────────────────────── */
 async function handleLogin(e) {
   e.preventDefault();
-  const email    = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
-  const errEl    = document.getElementById('login-error');
-  const btnText  = document.getElementById('login-btn-text');
-
-  errEl.style.display = 'none';
-  btnText.innerHTML = '<div class="spinner" style="border-top-color:var(--navy);border-color:rgba(13,21,68,0.2)"></div>';
-
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  const btnTxt= document.getElementById('login-btn-txt');
+  errEl.style.display='none';
+  btnTxt.innerHTML='<div class="spin"></div>';
   try {
-    // Busca usuário pelo e-mail + senha + ativo
-    const users = await supabase('tb_price_index_users', {
-      filter: { email, password, ativo: true }
-    });
-
-    if (!users || users.length === 0) {
-      errEl.style.display = 'block';
-      return;
-    }
-
-    currentUser = users[0];
-    sessionStorage.setItem('pi_user', JSON.stringify(currentUser));
+    const users = await sb('tb_price_index_users',{filter:{email,password:pass,ativo:true}});
+    if(!users?.length){ errEl.style.display='block'; return; }
+    CU = users[0];
+    sessionStorage.setItem('pi_user', JSON.stringify(CU));
     initApp();
-  } catch(err) {
-    errEl.textContent = 'Erro ao conectar. Verifique as configurações.';
-    errEl.style.display = 'block';
-    console.error(err);
-  } finally {
-    btnText.textContent = 'Entrar';
-  }
+  } catch(err){
+    errEl.textContent='Erro de conexão. Verifique as configurações.';
+    errEl.style.display='block';
+  } finally { btnTxt.textContent='Entrar no sistema'; }
 }
 
-function handleLogout() {
-  currentUser = null;
-  sessionStorage.removeItem('pi_user');
+function handleLogout(){
+  CU=null; sessionStorage.removeItem('pi_user');
   document.getElementById('app').classList.remove('visible');
-  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-screen').style.display='flex';
 }
 
-/* Verifica sessão ao carregar a página */
-function checkSession() {
-  const saved = sessionStorage.getItem('pi_user');
-  if (saved) {
-    currentUser = JSON.parse(saved);
-    initApp();
-  }
+function checkSession(){
+  const s = sessionStorage.getItem('pi_user');
+  if(s){ CU=JSON.parse(s); initApp(); }
+  else { loadLoginStats(); }
 }
 
-/* =====================================================
-   INICIALIZA O APP PÓS-LOGIN
-   ===================================================== */
-function initApp() {
-  // Oculta login, exibe app
-  document.getElementById('login-screen').style.display = 'none';
+/* Carrega estatísticas na tela de login (público) */
+async function loadLoginStats(){
+  try {
+    const data = await sb('tb_price_index_imput',{is:['is_deleted','false']}).catch(()=>[]) || [];
+    document.getElementById('ls-total').textContent = data.length.toLocaleString('pt-BR');
+    document.getElementById('ls-paises').textContent = [...new Set(data.map(d=>d.country).filter(Boolean))].length;
+    const ym = new Date().toISOString().slice(0,7);
+    document.getElementById('ls-mes').textContent = data.filter(d=>d.creation_date?.startsWith(ym)).length;
+  } catch{}
+}
+
+/* ─────────────────────────────────────────────────────────────
+   INIT APP
+   ───────────────────────────────────────────────────────────── */
+function initApp(){
+  document.getElementById('login-screen').style.display='none';
   document.getElementById('app').classList.add('visible');
+  document.getElementById('sb-name').textContent = CU.name;
+  document.getElementById('sb-role').textContent = CU.nivel_acesso.toUpperCase();
+  document.getElementById('sb-avatar').textContent = CU.name.charAt(0).toUpperCase();
 
-  // Atualiza sidebar com dados do usuário
-  document.getElementById('sidebar-name').textContent = currentUser.name;
-  document.getElementById('sidebar-role').textContent = currentUser.nivel_acesso.toUpperCase();
-  document.getElementById('sidebar-avatar').textContent = currentUser.name.charAt(0).toUpperCase();
+  const isAdmin = ['zeus','admin'].includes(CU.nivel_acesso);
+  const isZeus  = CU.nivel_acesso === 'zeus';
+  document.querySelectorAll('.nav-admin').forEach(el=>el.style.display=isAdmin?'flex':'none');
+  document.querySelectorAll('.nav-zeus').forEach(el=>el.style.display=isZeus?'flex':'none');
 
-  // Controla visibilidade de menus admin
-  const isAdmin = ['zeus','admin'].includes(currentUser.nivel_acesso);
-  const isZeus  = currentUser.nivel_acesso === 'zeus';
-  document.querySelectorAll('.nav-admin').forEach(el => el.style.display = isAdmin ? 'flex' : 'none');
-  document.querySelectorAll('.nav-zeus').forEach(el => el.style.display = isZeus ? 'flex' : 'none');
-
-  // Carrega dropdowns e renderiza dashboard
-  loadAllDropdowns();
+  loadDropdowns();
   navigate('dashboard');
 }
 
-/* =====================================================
-   NAVEGAÇÃO ENTRE PÁGINAS
-   ===================================================== */
-function navigate(page) {
-  currentPage = page;
+/* ─────────────────────────────────────────────────────────────
+   NAVEGAÇÃO
+   ───────────────────────────────────────────────────────────── */
+function navigate(page, el){
+  PAGE = page;
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
+  if(el) el.classList.add('active');
+  else { const found = [...document.querySelectorAll('.sb-item')].find(i=>i.textContent.includes(({
+    dashboard:'Dashboard',cotacoes:'Nova Cotação',historico:'Histórico',
+    suppliers:'Forn. Possíveis',usuarios:'Usuários',importar:'Importar',settings:'Configurações'
+  })[page]||'')); if(found) found.classList.add('active'); }
 
-  // Atualiza nav ativo
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  event?.currentTarget?.classList?.add('active');
-
-  // Títulos de cada página
-  const titles = {
-    dashboard: ['Dashboard', 'Visão geral das cotações'],
-    cotacoes:  ['Nova Cotação', 'Registre uma nova cotação de compra'],
-    historico: ['Histórico de Cotações', 'Consulte e gerencie cotações registradas'],
-    suppliers: ['Fornecedores Possíveis', 'Acompanhe cotações obrigatórias por fornecedor'],
-    usuarios:  ['Gestão de Usuários', 'Gerencie acessos e permissões'],
-    importar:  ['Importar Dados', 'Importe planilhas Excel para as tabelas']
+  const meta = {
+    dashboard: ['Dashboard','Visão geral das cotações'],
+    cotacoes:  ['Nova Cotação','Registre uma nova cotação de compra'],
+    historico: ['Histórico de Cotações','Consulte e gerencie todas as cotações'],
+    suppliers: ['Fornecedores Possíveis','Acompanhe cotações obrigatórias mensais'],
+    usuarios:  ['Gestão de Usuários','Gerencie acessos e permissões do sistema'],
+    importar:  ['Importar Dados','Carregue dados via arquivo CSV/Excel'],
+    settings:  ['Configurações do Sistema','Personalize o sistema — apenas Zeus'],
   };
-
-  const [title, sub] = titles[page] || ['', ''];
-  document.getElementById('page-title').textContent = title;
-  document.getElementById('page-sub').textContent   = sub;
-
-  // Renderiza conteúdo
-  const renders = {
-    dashboard: renderDashboard,
-    cotacoes:  renderCotacoes,
-    historico: renderHistorico,
-    suppliers: renderSuppliers,
-    usuarios:  renderUsuarios,
-    importar:  renderImportar
-  };
-  (renders[page] || (() => {}))();
+  const [t,s] = meta[page]||['',''];
+  document.getElementById('page-title').textContent = t;
+  document.getElementById('page-sub').textContent   = s;
+  ({dashboard:renderDash,cotacoes:renderCotPage,historico:renderHist,
+    suppliers:renderSuppliers,usuarios:renderUsers,importar:renderImport,
+    settings:renderSettings})[page]?.();
 }
 
-/* =====================================================
+/* ─────────────────────────────────────────────────────────────
+   HELPERS
+   ───────────────────────────────────────────────────────────── */
+/* Calcula semana do mês (segunda a domingo) */
+function getWeekOfMonth(date){
+  const d = new Date(date);
+  const firstDay = new Date(d.getFullYear(), d.getMonth(), 1);
+  // Ajusta para segunda-feira (0=dom→7, 1=seg→1...)
+  const firstMon = new Date(firstDay);
+  const fd = firstDay.getDay();
+  firstMon.setDate(firstDay.getDate() + (fd===0?1:(fd===1?0:8-fd)));
+  if(d < firstMon) return 'Semana 1';
+  const diff = Math.floor((d - firstMon) / 86400000);
+  return `Semana ${Math.floor(diff/7)+2}`;
+}
+
+function fmtDate(d){ if(!d) return '–'; try{ return new Date(d).toLocaleDateString('pt-BR'); }catch{ return d; } }
+function fmtCur(v){ if(v===null||v===undefined||v==='') return '–'; return parseFloat(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+/* Filtra dados por permissão de segmento */
+function filterByAccess(data){
+  if(['zeus','admin'].includes(CU.nivel_acesso)) return data;
+  return data.filter(d => !CU.segmento || d.subsegment === CU.segmento);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   CARREGAR DROPDOWNS
+   Busca valores únicos de cada tabela para preencher autocompletes
+   ───────────────────────────────────────────────────────────── */
+async function loadDropdowns(){
+  try {
+    // tb_price_index_filter: países, origens, destinos, modal, container, comprador, motivo, fornecedor
+    const filters = await sb('tb_price_index_filter',{select:'pais,origem,destino,modal,container,comprador,status,fantasia'}) || [];
+    _dd.pais      = [...new Set(filters.map(f=>f.pais).filter(Boolean))].sort();
+    _dd.portoOrig = [...new Set(filters.map(f=>f.origem).filter(Boolean))].sort();
+    _dd.portoDest = [...new Set(filters.map(f=>f.destino).filter(Boolean))].sort();
+    _dd.modal     = [...new Set(filters.map(f=>f.modal).filter(Boolean))].sort();
+    _dd.container = [...new Set(filters.map(f=>f.container).filter(Boolean))].sort();
+    _dd.comprador = [...new Set(filters.map(f=>f.comprador).filter(Boolean))].sort();
+    _dd.motivo    = [...new Set(filters.map(f=>f.status).filter(Boolean))].sort();
+    _dd.fornecedor= [...new Set(filters.map(f=>f.fantasia).filter(Boolean))].sort();
+
+    // tb_price_index_planning: produtos
+    const plan = await sb('tb_price_index_planning',{select:'product_description'}) || [];
+    _dd.produto = [...new Set(plan.map(p=>p.product_description).filter(Boolean))].sort();
+
+    // tb_price_index_product: fabricante, embalagem, segmento, sku, país fabricante
+    const prod = await sb('tb_price_index_product',{select:'manufacturer_desc,packaging_description,segment,sku,manufacturer_country'}) || [];
+    _dd.fabricante = [...new Set(prod.map(p=>p.manufacturer_desc).filter(Boolean))].sort();
+    _dd.embalagem  = [...new Set(prod.map(p=>p.packaging_description).filter(Boolean))].sort();
+    _dd.segmento   = [...new Set(prod.map(p=>p.segment).filter(Boolean))].sort();
+    _dd.codigo     = [...new Set(prod.map(p=>p.sku).filter(Boolean))].sort();
+    _dd.paisFab    = [...new Set(prod.map(p=>p.manufacturer_country).filter(Boolean))].sort();
+
+    // Inicializa todas as listas de autocomplete
+    Object.entries({
+      'f-pais':'pais','f-produto':'produto','f-fabricante':'fabricante',
+      'f-embalagem':'embalagem','f-pais-fab':'paisFab','f-codigo':'codigo',
+      'f-segmento':'segmento','f-fornecedor':'fornecedor','f-porto-orig':'portoOrig',
+      'f-porto-dest':'portoDest','f-modal':'modal','f-container':'container',
+      'f-comprador':'comprador','f-motivo':'motivo','u-seg':'segmento'
+    }).forEach(([id,key])=> acInit(id+'-list', id+'-list', _dd[key]||[]) );
+
+  } catch(err){ console.warn('Dropdowns erro:',err); }
+}
+
+/* ─────────────────────────────────────────────────────────────
    DASHBOARD
-   Busca indicadores de: tb_price_index_imput
-   ===================================================== */
-async function renderDashboard() {
-  const content = document.getElementById('page-content');
-  content.innerHTML = '<div class="empty-state"><div class="icon">⏳</div><p>Carregando dashboard...</p></div>';
-  document.getElementById('topbar-actions').innerHTML = '';
+   Filtros: data (mês/ano), produto, segmento, comprador
+   ───────────────────────────────────────────────────────────── */
+async function renderDash(){
+  document.getElementById('topbar-actions').innerHTML =
+    `<button class="btn btn-navy" onclick="openCot()">+ Nova Cotação</button>`;
+  document.getElementById('page-content').innerHTML =
+    `<div class="empty"><div class="ico">⏳</div><p>Carregando dashboard...</p></div>`;
 
   try {
-    // Busca cotações não deletadas
-    const cotacoes = await supabase('tb_price_index_imput', {
-      filter: { is_deleted: false }
-    }).catch(() => []) || [];
+    const all = await sb('tb_price_index_imput',{is:['is_deleted','false'],order:'creation_date.desc'}).catch(()=>[]) || [];
+    const data = filterByAccess(all);
+    renderDashContent(data);
+  } catch(err){
+    document.getElementById('page-content').innerHTML =
+      `<div class="empty"><div class="ico">⚠️</div><p>Erro: ${err.message}</p></div>`;
+  }
+}
 
-    // Filtra por segmento se não for zeus/admin
-    const isAdmin = ['zeus','admin'].includes(currentUser.nivel_acesso);
-    const data = isAdmin ? cotacoes : cotacoes.filter(c => c.subsegment === currentUser.segmento);
+function renderDashContent(data){
+  const ym = new Date().toISOString().slice(0,7);
+  const total    = data.length;
+  const thisMes  = data.filter(d=>d.creation_date?.startsWith(ym)).length;
+  const paises   = [...new Set(data.map(d=>d.country).filter(Boolean))].length;
+  const semanas  = [...new Set(data.map(d=>d.week).filter(Boolean))];
+  const curWeek  = getWeekOfMonth(new Date().toISOString().split('T')[0]);
+  const thisSem  = data.filter(d=>d.week===curWeek && d.creation_date?.startsWith(ym)).length;
 
-    // KPIs
-    const total     = data.length;
-    const thisMonth = data.filter(c => c.creation_date?.startsWith(new Date().toISOString().slice(0,7))).length;
-    const paises    = [...new Set(data.map(c => c.country))].length;
-    const compradores = [...new Set(data.map(c => c.buyer).filter(Boolean))].length;
+  // Agrupamentos para gráficos
+  const byPais = {};
+  data.forEach(d=>{ if(d.country) byPais[d.country]=(byPais[d.country]||0)+1; });
+  const topPais = Object.entries(byPais).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const maxP = Math.max(...topPais.map(p=>p[1]),1);
 
-    // Agrupa por país (top 6) para gráfico
-    const byPais = {};
-    data.forEach(c => { if(c.country) byPais[c.country] = (byPais[c.country]||0)+1; });
-    const topPaises = Object.entries(byPais).sort((a,b)=>b[1]-a[1]).slice(0,6);
-    const maxP = Math.max(...topPaises.map(p=>p[1]), 1);
+  const bySeg = {};
+  data.forEach(d=>{ if(d.subsegment) bySeg[d.subsegment]=(bySeg[d.subsegment]||0)+1; });
+  const segColors = ['#0D1544','#C8102E','#10b981','#f59e0b','#3b82f6','#8b5cf6'];
 
-    // Agrupa por segmento para donut
-    const bySegmento = {};
-    data.forEach(c => { if(c.subsegment) bySegmento[c.subsegment] = (bySegmento[c.subsegment]||0)+1; });
-    const segColors = ['#0D1544','#C8102E','#1a2660','#16a34a','#d97706','#6b7592'];
+  // Filtros únicos para os selects do dashboard
+  const prods = [...new Set(data.map(d=>d.product).filter(Boolean))].sort();
+  const segs  = [...new Set(data.map(d=>d.subsegment).filter(Boolean))].sort();
+  const comps = [...new Set(data.map(d=>d.buyer).filter(Boolean))].sort();
+  const meses = [...new Set(data.map(d=>d.creation_date?.slice(0,7)).filter(Boolean))].sort().reverse().slice(0,24);
 
-    content.innerHTML = `
-      <!-- KPIs -->
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon navy">📋</div>
-          <div>
-            <div class="stat-value">${total.toLocaleString('pt-BR')}</div>
-            <div class="stat-label">Total de Cotações</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon red">📅</div>
-          <div>
-            <div class="stat-value">${thisMonth}</div>
-            <div class="stat-label">Cotações este Mês</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon green">🌍</div>
-          <div>
-            <div class="stat-value">${paises}</div>
-            <div class="stat-label">Países Ativos</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon amber">👤</div>
-          <div>
-            <div class="stat-value">${compradores}</div>
-            <div class="stat-label">Compradores</div>
-          </div>
+  document.getElementById('page-content').innerHTML = `
+    <!-- Filtros do Dashboard -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-body" style="padding:14px 20px">
+        <div class="filter-bar">
+          <span style="font-size:12px;font-weight:700;color:var(--text-2)">Filtros:</span>
+          <select class="fi-filter" id="df-mes" onchange="applyDashFilter()">
+            <option value="">Todos os períodos</option>
+            ${meses.map(m=>`<option value="${m}">${m}</option>`).join('')}
+          </select>
+          <select class="fi-filter" id="df-seg" onchange="applyDashFilter()">
+            <option value="">Todos os segmentos</option>
+            ${segs.map(s=>`<option value="${s}">${s}</option>`).join('')}
+          </select>
+          <select class="fi-filter" id="df-comp" onchange="applyDashFilter()">
+            <option value="">Todos os compradores</option>
+            ${comps.map(c=>`<option value="${c}">${c}</option>`).join('')}
+          </select>
+          <select class="fi-filter" id="df-prod" onchange="applyDashFilter()">
+            <option value="">Todos os produtos</option>
+            ${prods.slice(0,100).map(p=>`<option value="${p}">${p.slice(0,40)}</option>`).join('')}
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="clearDashFilters()">✕ Limpar</button>
         </div>
       </div>
+    </div>
 
-      <!-- GRÁFICOS -->
-      <div class="charts-grid">
-        <div class="chart-card">
-          <div class="chart-title">
-            Cotações por País
-            <span style="font-size:12px;color:var(--text-light);font-weight:400">Top ${topPaises.length}</span>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:10px">
-            ${topPaises.map(([pais, qtd]) => `
-              <div style="display:flex;align-items:center;gap:12px">
-                <div style="width:80px;font-size:12px;font-weight:600;color:var(--text-light);text-align:right">${pais}</div>
-                <div style="flex:1;height:28px;background:var(--gray-200);border-radius:4px;overflow:hidden">
-                  <div style="width:${(qtd/maxP*100).toFixed(1)}%;height:100%;background:var(--navy);border-radius:4px;display:flex;align-items:center;padding-left:8px">
-                    <span style="color:var(--white);font-size:11px;font-weight:700">${qtd}</span>
+    <!-- KPIs -->
+    <div class="stats-row" id="dash-kpis">
+      <div class="kpi-card">
+        <div class="kpi-top"><div class="kpi-icon">📋</div></div>
+        <div class="kpi-value">${total.toLocaleString('pt-BR')}</div>
+        <div class="kpi-label">Total de Cotações</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-top"><div class="kpi-icon">📅</div></div>
+        <div class="kpi-value">${thisMes}</div>
+        <div class="kpi-label">Cotações este Mês</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-top"><div class="kpi-icon">🌍</div></div>
+        <div class="kpi-value">${paises}</div>
+        <div class="kpi-label">Países Ativos</div>
+      </div>
+      <div class="kpi-card amber">
+        <div class="kpi-top"><div class="kpi-icon">📆</div></div>
+        <div class="kpi-value">${thisSem}</div>
+        <div class="kpi-label">Cotações ${curWeek}</div>
+      </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="charts-grid">
+      <div class="card">
+        <div class="card-header"><div><div class="card-title">Cotações por País</div><div class="card-sub">Top ${topPais.length} países</div></div></div>
+        <div class="card-body">
+          <div class="chart-wrap" style="height:auto;gap:8px">
+            ${topPais.map(([pais,qtd])=>`
+              <div class="bar-row">
+                <div class="bar-label">${pais}</div>
+                <div class="bar-track">
+                  <div class="bar-fill" style="width:${(qtd/maxP*100).toFixed(1)}%;background:var(--navy)">
+                    <span class="bar-fill-val">${qtd}</span>
                   </div>
                 </div>
               </div>
             `).join('')}
-            ${topPaises.length === 0 ? '<p style="color:var(--text-light);text-align:center;font-size:13px">Sem dados</p>' : ''}
+            ${!topPais.length?'<p style="color:var(--text-3);text-align:center;font-size:13px">Sem dados</p>':''}
           </div>
         </div>
+      </div>
 
-        <div class="chart-card">
-          <div class="chart-title">Por Segmento</div>
-          <div style="display:flex;flex-direction:column;gap:8px">
-            ${Object.entries(bySegmento).slice(0,6).map(([seg,qtd],i) => `
-              <div style="display:flex;align-items:center;gap:8px">
-                <div style="width:12px;height:12px;border-radius:50%;background:${segColors[i%segColors.length]};flex-shrink:0"></div>
-                <div style="flex:1;font-size:12px;color:var(--text-light)">${seg}</div>
-                <div style="font-size:13px;font-weight:700;color:var(--navy)">${qtd}</div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Por Segmento</div></div>
+        <div class="card-body">
+          <div class="seg-list">
+            ${Object.entries(bySeg).slice(0,8).map(([seg,qtd],i)=>`
+              <div class="seg-row">
+                <div class="seg-dot" style="background:${segColors[i%segColors.length]}"></div>
+                <div class="seg-name">${seg}</div>
+                <div class="seg-val">${qtd}</div>
+                <div class="seg-pct">${total?((qtd/total)*100).toFixed(0)+'%':''}</div>
               </div>
             `).join('')}
-            ${Object.keys(bySegmento).length === 0 ? '<p style="color:var(--text-light);font-size:13px">Sem dados</p>' : ''}
+            ${!Object.keys(bySeg).length?'<p style="color:var(--text-3);font-size:13px">Sem dados</p>':''}
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- ÚLTIMAS COTAÇÕES -->
-      <div class="table-card">
-        <div class="table-header">
-          <div class="table-header-left">
-            <div class="table-title">Últimas Cotações</div>
-            <div class="table-subtitle">10 registros mais recentes</div>
-          </div>
-          <button class="btn btn-primary btn-sm" onclick="navigate('historico')">Ver todas →</button>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
+    <!-- Últimas cotações -->
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Últimas Cotações</div><div class="card-sub">10 mais recentes</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="navigate('historico')">Ver todas →</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Data</th><th>Semana</th><th>País</th><th>Produto</th><th>Fabricante</th><th>CFR Anastácio</th><th>Comprador</th><th>Tipo</th></tr></thead>
+          <tbody>
+            ${data.slice(0,10).map(c=>`
               <tr>
-                <th>Data</th><th>País</th><th>Produto</th><th>Fabricante</th>
-                <th>CFR Anastácio</th><th>Comprador</th><th>Status</th>
+                <td>${fmtDate(c.quotation_date)}</td>
+                <td><span class="badge badge-navy">${c.week||'–'}</span></td>
+                <td><span class="badge badge-amber">${c.country||'–'}</span></td>
+                <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.product||'–'}</td>
+                <td>${c.manufacturer||'–'}</td>
+                <td><strong>${fmtCur(c.cfr_anastacio)}</strong></td>
+                <td>${c.buyer||'–'}</td>
+                <td><span class="badge ${c.quotation_type==='MANUAL'?'badge-amber':'badge-navy'}">${c.quotation_type||'SKU'}</span></td>
               </tr>
-            </thead>
-            <tbody>
-              ${data.slice(-10).reverse().map(c => `
-                <tr>
-                  <td>${formatDate(c.quotation_date)}</td>
-                  <td><span class="badge badge-navy">${c.country||'–'}</span></td>
-                  <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.product||'–'}</td>
-                  <td>${c.manufacturer||'–'}</td>
-                  <td><strong>${c.cfr_anastacio ? formatCurrency(c.cfr_anastacio) : '–'}</strong></td>
-                  <td>${c.buyer||'–'}</td>
-                  <td><span class="badge badge-green">✓ Registrada</span></td>
-                </tr>
-              `).join('')}
-              ${data.length === 0 ? '<tr><td colspan="7" class="text-center" style="padding:32px;color:var(--text-light)">Nenhuma cotação registrada.</td></tr>' : ''}
-            </tbody>
-          </table>
-        </div>
+            `).join('')}
+            ${!data.length?'<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-3)">Nenhuma cotação registrada.</td></tr>':''}
+          </tbody>
+        </table>
       </div>
-    `;
-  } catch(err) {
-    content.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar dashboard: ${err.message}</p></div>`;
-  }
-}
-
-/* =====================================================
-   NOVA COTAÇÃO
-   ===================================================== */
-function renderCotacoes() {
-  document.getElementById('page-content').innerHTML = `
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px;gap:16px">
-      <div style="font-size:60px">💰</div>
-      <div style="font-size:20px;font-weight:700;color:var(--navy)">Nova Cotação de SKU</div>
-      <p style="color:var(--text-light);text-align:center;max-width:400px">
-        Registre uma nova cotação de compra preenchendo os dados do produto, logística e valores.
-      </p>
-      <button class="btn btn-primary" onclick="openCotacao()">+ Iniciar Nova Cotação</button>
     </div>
   `;
-  document.getElementById('topbar-actions').innerHTML = `
-    <button class="btn btn-primary" onclick="openCotacao()">+ Nova Cotação</button>
+
+  // Salva dados para filtro
+  window._dashAllData = filterByAccess(
+    (window._allCotData||data)
+  );
+}
+
+/* Aplica filtros do dashboard */
+function applyDashFilter(){
+  const mes  = document.getElementById('df-mes')?.value||'';
+  const seg  = document.getElementById('df-seg')?.value||'';
+  const comp = document.getElementById('df-comp')?.value||'';
+  const prod = document.getElementById('df-prod')?.value||'';
+  let data   = window._dashAllData || [];
+  if(mes)  data = data.filter(d=>d.creation_date?.startsWith(mes));
+  if(seg)  data = data.filter(d=>d.subsegment===seg);
+  if(comp) data = data.filter(d=>d.buyer===comp);
+  if(prod) data = data.filter(d=>d.product===prod);
+  renderDashContent(data);
+  // Restaura valores dos filtros
+  if(document.getElementById('df-mes')) document.getElementById('df-mes').value=mes;
+  if(document.getElementById('df-seg')) document.getElementById('df-seg').value=seg;
+  if(document.getElementById('df-comp'))document.getElementById('df-comp').value=comp;
+  if(document.getElementById('df-prod'))document.getElementById('df-prod').value=prod;
+}
+
+function clearDashFilters(){ renderDash(); }
+
+/* ─────────────────────────────────────────────────────────────
+   COTAÇÃO — abrir modal
+   ───────────────────────────────────────────────────────────── */
+function renderCotPage(){
+  document.getElementById('topbar-actions').innerHTML =
+    `<button class="btn btn-navy" onclick="openCot()">+ Nova Cotação</button>`;
+  document.getElementById('page-content').innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:320px;gap:16px">
+      <div style="font-size:64px">💰</div>
+      <div style="font-size:22px;font-weight:800;color:var(--navy)">Nova Cotação de SKU</div>
+      <p style="color:var(--text-3);text-align:center;max-width:400px;font-size:14px">
+        Clique abaixo para registrar uma nova cotação. Escolha entre <strong>Cotação SKU</strong> (com dados do banco) ou <strong>Cotação Manual</strong> (digitação livre).
+      </p>
+      <div style="display:flex;gap:12px">
+        <button class="btn btn-navy" onclick="openCot('sku')">📦 Cotação SKU</button>
+        <button class="btn btn-ghost" onclick="openCot('manual')">✏️ Cotação Manual</button>
+      </div>
+    </div>
   `;
 }
 
-function openCotacao(record = null) {
-  editingId = record?.id || null;
-  clearForm();
-
-  if (record) {
-    // Preenche formulário para edição
-    document.getElementById('f-data').value          = record.quotation_date || '';
-    document.getElementById('f-cond-pag').value      = record.payment_terms || '';
-    document.getElementById('f-cfr').value           = record.cfr_quotation || '';
-    document.getElementById('f-fob').value           = record.fob_quotation || '';
-    document.getElementById('f-frete').value         = record.value_freight || '';
-    document.getElementById('f-imo-val').value       = record.value_imo || '';
-    document.getElementById('f-qtd-container').value = record.quantity_per_container || '';
-    document.getElementById('f-comentarios').value   = record.comments || '';
-    document.getElementById('f-best-cfr').value      = record.best_cfr || '';
-    document.getElementById('f-registration').value  = record.registration || '';
-    document.querySelector(`input[name="etiqueta"][value="${record.labeled||'Não'}"]`).checked = true;
-    document.querySelector(`input[name="paletizado"][value="${record.palletized||'Não'}"]`).checked = true;
-    document.querySelector(`input[name="imo"][value="${record.imo||'Não'}"]`).checked = true;
-    calcCFR();
-  } else {
-    // Data de hoje por padrão
-    document.getElementById('f-data').value = new Date().toISOString().split('T')[0];
-  }
-
-  openModal('modal-cotacao');
+function openCot(type='sku', record=null){
+  EDIT_ID  = record?.id||null;
+  COT_TYPE = type||'sku';
+  clearCotForm();
+  setCotType(COT_TYPE, null, true);
+  if(record) fillCotForm(record);
+  else document.getElementById('f-data').value = new Date().toISOString().split('T')[0];
+  updateSemana();
+  // Configura max date no campo de data
+  document.getElementById('f-data').max = new Date().toISOString().split('T')[0];
+  openModal('modal-cot');
 }
 
-/* Limpa todos os campos do formulário */
-function clearForm() {
-  ['f-data','f-pais','f-produto','f-fabricante','f-embalagem','f-pais-fab',
-   'f-codigo','f-segmento','f-fornecedor','f-porto-orig','f-porto-dest',
-   'f-modal','f-container','f-qtd-container','f-comprador','f-motivo',
-   'f-cond-pag','f-cfr','f-fob','f-frete','f-imo-val','f-cfr-anastacio',
-   'f-best-cfr','f-registration','f-comentarios'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
+/* Alterna entre modo SKU (autocomplete) e Manual (texto livre) */
+function setCotType(type, el, silent=false){
+  COT_TYPE = type;
+  if(el){
+    document.querySelectorAll('.cot-tab').forEach(t=>t.classList.remove('active'));
+    el.classList.add('active');
+  }
+  // No modo manual todos os campos de autocomplete viram inputs de texto
+  const isManual = type==='manual';
+  document.getElementById('hist-toggle').style.display = isManual?'none':'flex';
+  document.querySelectorAll('.ac-input').forEach(inp=>{
+    inp.placeholder = isManual ? 'Digitar manualmente...' : inp.placeholder.replace('Digitar manualmente...','Buscar...')||'Buscar...';
   });
-  document.querySelector('input[name="etiqueta"][value="Não"]').checked = true;
-  document.querySelector('input[name="paletizado"][value="Não"]').checked = true;
-  document.querySelector('input[name="imo"][value="Não"]').checked = true;
-  document.getElementById('f-data').value = new Date().toISOString().split('T')[0];
 }
 
-/* Toggle: usar ou não o histórico */
-function toggleHistory() {
-  const use = document.getElementById('use-history').checked;
-  if (!use) {
-    // Limpa campos preenchidos pelo histórico
-    ['f-pais-fab','f-codigo','f-segmento','f-fornecedor','f-porto-orig',
-     'f-porto-dest','f-modal','f-container','f-qtd-container','f-comprador',
-     'f-motivo','f-cond-pag','f-cfr','f-fob','f-frete','f-imo-val'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) { el.value = ''; el.classList.remove('highlight'); }
-    });
-  }
+/* Calcula semana quando data muda */
+function updateSemana(){
+  const d = document.getElementById('f-data')?.value;
+  if(d) document.getElementById('f-semana').value = getWeekOfMonth(d);
 }
 
 /* Quando os 4 campos-chave mudam, busca histórico */
-async function onKeyFieldChange() {
-  if (!document.getElementById('use-history').checked) return;
-  const pais      = document.getElementById('f-pais').value;
-  const produto   = document.getElementById('f-produto').value;
-  const fabricante= document.getElementById('f-fabricante').value;
-  const embalagem = document.getElementById('f-embalagem').value;
-  if (!pais || !produto || !fabricante || !embalagem) return;
-
+async function onKeyChange(){
+  updateSemana();
+  if(COT_TYPE!=='sku') return;
+  if(!document.getElementById('use-hist')?.checked) return;
+  const pais = document.getElementById('f-pais').value;
+  const prod = document.getElementById('f-produto').value;
+  const fab  = document.getElementById('f-fabricante').value;
+  const emb  = document.getElementById('f-embalagem').value;
+  if(!pais||!prod||!fab||!emb) return;
   try {
-    // Busca último registro com essas chaves em tb_price_index_imput
-    const records = await supabase('tb_price_index_imput', {
-      filter: {
-        country: pais,
-        product: produto,
-        manufacturer: fabricante,
-        package: embalagem,
-        is_deleted: false
-      },
-      order: 'creation_date.desc',
-      limit: 1
+    const records = await sb('tb_price_index_imput',{
+      filter:{country:pais,product:prod,manufacturer:fab,package:emb,is_deleted:false},
+      order:'creation_date.desc',limit:1
     });
-    if (!records || records.length === 0) return;
+    if(!records?.length) return;
     const r = records[0];
-
-    // Preenche campos com dado histórico e destaca em verde
-    const fill = (id, val) => {
-      const el = document.getElementById(id);
-      if (el && val) { el.value = val; el.classList.add('highlight'); }
+    const fill = (id,val)=>{
+      const el=document.getElementById(id);
+      if(el&&val){ el.value=val; el.classList.add('hist'); }
     };
-    fill('f-cond-pag',      r.payment_terms);
-    fill('f-porto-orig',    r.origin_port);
-    fill('f-porto-dest',    r.destination_port);
-    fill('f-modal',         r.transportation_mode);
-    fill('f-container',     r.container);
-    fill('f-qtd-container', r.quantity_per_container);
-    fill('f-comprador',     r.buyer);
-    fill('f-motivo',        r.reason);
-    fill('f-cfr',           r.cfr_quotation);
-    fill('f-fob',           r.fob_quotation);
-    fill('f-frete',         r.value_freight);
-    fill('f-imo-val',       r.value_imo);
+    fill('f-cond',     r.payment_terms);
+    fill('f-porto-orig',r.origin_port);
+    fill('f-porto-dest',r.destination_port);
+    fill('f-modal',    r.transportation_mode);
+    fill('f-container',r.container);
+    fill('f-qtd',      r.quantity_per_container);
+    fill('f-comprador',r.buyer);
+    fill('f-motivo',   r.reason);
+    fill('f-cfr',      r.cfr_quotation);
+    fill('f-fob',      r.fob_quotation);
+    fill('f-frete',    r.value_freight);
+    fill('f-imo-v',    r.value_imo);
     calcCFR();
-    showToast('Histórico carregado com base nos campos selecionados!', 'success');
-  } catch(err) {
-    console.warn('Sem histórico para esses filtros.', err);
+    showToast('Histórico carregado com sucesso!','success');
+  } catch(e){ console.warn('Sem histórico',e); }
+}
+
+function toggleHist(){
+  if(!document.getElementById('use-hist').checked){
+    ['f-cond','f-porto-orig','f-porto-dest','f-modal','f-container',
+     'f-qtd','f-comprador','f-motivo','f-cfr','f-fob','f-frete','f-imo-v'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el){ el.value=''; el.classList.remove('hist'); }
+    });
   }
 }
 
-/* Calcula CFR Anastácio: ((Frete + IMO) / Qtd) + FOB */
-function calcCFR() {
-  const frete = parseFloat(document.getElementById('f-frete').value) || 0;
-  const imo   = parseFloat(document.getElementById('f-imo-val').value) || 0;
-  const qtd   = parseFloat(document.getElementById('f-qtd-container').value) || 0;
-  const fob   = parseFloat(document.getElementById('f-fob').value) || 0;
-  const cfr   = qtd > 0 ? ((frete + imo) / qtd) + fob : 0;
-  document.getElementById('f-cfr-anastacio').value = cfr > 0 ? cfr.toFixed(2) : '0,00';
+/* CFR Anastácio = ((Frete + IMO) / Qtd) + FOB */
+function calcCFR(){
+  const f  = parseFloat(document.getElementById('f-frete')?.value)||0;
+  const i  = parseFloat(document.getElementById('f-imo-v')?.value)||0;
+  const q  = parseFloat(document.getElementById('f-qtd')?.value)||0;
+  const fob= parseFloat(document.getElementById('f-fob')?.value)||0;
+  const cfr= q>0 ? ((f+i)/q)+fob : 0;
+  document.getElementById('f-cfr-anast').value = cfr>0?cfr.toFixed(2):'0,00';
 }
 
-/* Salva cotação no Supabase */
-async function saveCotacao() {
+function clearCotForm(){
+  ['f-pais','f-produto','f-fabricante','f-embalagem','f-pais-fab','f-codigo',
+   'f-segmento','f-fornecedor','f-porto-orig','f-porto-dest','f-modal',
+   'f-container','f-qtd','f-comprador','f-motivo','f-cond','f-cfr','f-fob',
+   'f-frete','f-imo-v','f-cfr-anast','f-best-cfr','f-reg','f-comments','f-semana'
+  ].forEach(id=>{ const el=document.getElementById(id); if(el){ el.value=''; el.classList.remove('hist'); } });
+  document.querySelector('input[name="etiq"][value="Não"]').checked=true;
+  document.querySelector('input[name="palet"][value="Não"]').checked=true;
+  document.querySelector('input[name="imo-r"][value="Não"]').checked=true;
+}
+
+function fillCotForm(r){
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el&&v!==null&&v!==undefined) el.value=v; };
+  set('f-pais',r.country); set('f-produto',r.product); set('f-fabricante',r.manufacturer);
+  set('f-embalagem',r.package); set('f-pais-fab',r.manufacturer_country);
+  set('f-codigo',r.product_code); set('f-segmento',r.subsegment);
+  set('f-fornecedor',r.supplier); set('f-porto-orig',r.origin_port);
+  set('f-porto-dest',r.destination_port); set('f-modal',r.transportation_mode);
+  set('f-container',r.container); set('f-qtd',r.quantity_per_container);
+  set('f-comprador',r.buyer); set('f-motivo',r.reason);
+  set('f-cond',r.payment_terms); set('f-cfr',r.cfr_quotation);
+  set('f-fob',r.fob_quotation); set('f-frete',r.value_freight);
+  set('f-imo-v',r.value_imo); set('f-best-cfr',r.best_cfr);
+  set('f-reg',r.registration); set('f-comments',r.comments);
+  set('f-data',r.quotation_date); set('f-semana',r.week);
+  if(r.labeled) document.querySelector(`input[name="etiq"][value="${r.labeled}"]`).checked=true;
+  if(r.palletized) document.querySelector(`input[name="palet"][value="${r.palletized}"]`).checked=true;
+  if(r.imo) document.querySelector(`input[name="imo-r"][value="${r.imo}"]`).checked=true;
+  calcCFR();
+}
+
+/* Salva cotação */
+async function saveCot(){
   const payload = {
     country:               document.getElementById('f-pais').value,
     product:               document.getElementById('f-produto').value,
@@ -1283,268 +1641,250 @@ async function saveCotacao() {
     destination_port:      document.getElementById('f-porto-dest').value,
     transportation_mode:   document.getElementById('f-modal').value,
     container:             document.getElementById('f-container').value,
-    quantity_per_container:document.getElementById('f-qtd-container').value,
-    labeled:               document.querySelector('input[name="etiqueta"]:checked')?.value,
-    palletized:            document.querySelector('input[name="paletizado"]:checked')?.value,
-    imo:                   document.querySelector('input[name="imo"]:checked')?.value,
+    quantity_per_container:document.getElementById('f-qtd').value,
+    labeled:               document.querySelector('input[name="etiq"]:checked')?.value,
+    palletized:            document.querySelector('input[name="palet"]:checked')?.value,
+    imo:                   document.querySelector('input[name="imo-r"]:checked')?.value,
     buyer:                 document.getElementById('f-comprador').value,
     reason:                document.getElementById('f-motivo').value,
-    payment_terms:         document.getElementById('f-cond-pag').value,
-    cfr_quotation:         document.getElementById('f-cfr').value || null,
-    fob_quotation:         document.getElementById('f-fob').value || null,
-    cfr_anastacio:         document.getElementById('f-cfr-anastacio').value || null,
-    best_cfr:              document.getElementById('f-best-cfr').value || null,
-    value_freight:         document.getElementById('f-frete').value || null,
-    value_imo:             document.getElementById('f-imo-val').value || null,
-    comments:              document.getElementById('f-comentarios').value,
-    registration:          document.getElementById('f-registration').value,
+    payment_terms:         document.getElementById('f-cond').value,
+    cfr_quotation:         document.getElementById('f-cfr').value||null,
+    fob_quotation:         document.getElementById('f-fob').value||null,
+    cfr_anastacio:         document.getElementById('f-cfr-anast').value||null,
+    best_cfr:              document.getElementById('f-best-cfr').value||null,
+    value_freight:         document.getElementById('f-frete').value||null,
+    value_imo:             document.getElementById('f-imo-v').value||null,
+    comments:              document.getElementById('f-comments').value,
+    registration:          document.getElementById('f-reg').value,
     quotation_date:        document.getElementById('f-data').value,
+    week:                  document.getElementById('f-semana').value,
     creation_date:         new Date().toISOString(),
-    responsible_input:     currentUser.name,
-    is_deleted:            false
+    responsible_input:     CU.name,
+    is_deleted:            false,
+    quotation_type:        COT_TYPE.toUpperCase()
   };
-
   try {
-    if (editingId) {
-      await supabaseUpdate('tb_price_index_imput', editingId, payload);
-      showToast('Cotação atualizada com sucesso!', 'success');
-    } else {
-      await supabase('tb_price_index_imput', { method: 'POST', body: payload });
-      showToast('Cotação salva com sucesso!', 'success');
-    }
-    closeModal('modal-cotacao');
-    if (currentPage === 'historico') renderHistorico();
-  } catch(err) {
-    showToast('Erro ao salvar cotação: ' + err.message, 'error');
-  }
+    if(EDIT_ID) await sbPatch('tb_price_index_imput',EDIT_ID,payload);
+    else await sb('tb_price_index_imput',{method:'POST',body:payload});
+    showToast(EDIT_ID?'Cotação atualizada!':'Cotação salva com sucesso!','success');
+    closeModal('modal-cot');
+    if(PAGE==='historico') renderHist();
+  } catch(e){ showToast('Erro ao salvar: '+e.message,'error'); }
 }
 
-/* =====================================================
-   HISTÓRICO DE COTAÇÕES
-   Tabela: tb_price_index_imput (is_deleted = false)
-   ===================================================== */
-async function renderHistorico() {
-  const isAdmin = ['zeus','admin'].includes(currentUser.nivel_acesso);
-  const isZeus  = currentUser.nivel_acesso === 'zeus';
-
+/* ─────────────────────────────────────────────────────────────
+   HISTÓRICO
+   Filtros: data, mês, ano, comprador, produto, segmento
+   ───────────────────────────────────────────────────────────── */
+async function renderHist(){
+  const isAdmin = ['zeus','admin'].includes(CU.nivel_acesso);
   document.getElementById('topbar-actions').innerHTML = `
-    <button class="btn btn-outline btn-sm" onclick="exportExcel()">📥 Exportar Excel</button>
-    <button class="btn btn-primary" onclick="openCotacao()">+ Nova Cotação</button>
+    <button class="btn btn-ghost btn-sm" onclick="exportCsv()">📥 Exportar</button>
+    <button class="btn btn-navy" onclick="openCot()">+ Nova Cotação</button>
   `;
-
   document.getElementById('page-content').innerHTML = `
-    <div class="table-card">
-      <div class="table-header">
-        <div class="table-header-left">
-          <div class="table-title">Histórico de Cotações</div>
-          <div class="table-subtitle">Registros ativos (não deletados)</div>
-        </div>
-        <div class="table-filters">
-          <input class="filter-input" placeholder="🔍 Buscar produto, país..." oninput="filterTable(this.value)" id="hist-search">
-          <select class="filter-input" onchange="filterTable()" id="hist-pais">
-            <option value="">Todos os países</option>
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Histórico de Cotações</div><div class="card-sub">Registros ativos</div></div>
+        <div class="filter-bar">
+          <input class="fi-filter" placeholder="🔍 Buscar..." id="hf-search" oninput="applyHistFilter()">
+          <select class="fi-filter" id="hf-mes" onchange="applyHistFilter()">
+            <option value="">Todos os meses</option>
+          </select>
+          <select class="fi-filter" id="hf-seg" onchange="applyHistFilter()">
+            <option value="">Todos os segmentos</option>
+          </select>
+          <select class="fi-filter" id="hf-comp" onchange="applyHistFilter()">
+            <option value="">Todos os compradores</option>
+          </select>
+          <select class="fi-filter" id="hf-prod" onchange="applyHistFilter()">
+            <option value="">Todos os produtos</option>
+          </select>
+          <select class="fi-filter" id="hf-type" onchange="applyHistFilter()">
+            <option value="">Todos os tipos</option>
+            <option value="SKU">SKU</option>
+            <option value="MANUAL">Manual</option>
           </select>
         </div>
       </div>
-      <div class="table-wrap" id="hist-table-wrap">
-        <div class="empty-state"><div class="icon">⏳</div><p>Carregando...</p></div>
+      <div class="table-wrap" id="hist-tbody">
+        <div class="empty"><div class="ico">⏳</div><p>Carregando...</p></div>
       </div>
-      <div class="pagination" id="hist-pagination"></div>
+      <div class="pagination" id="hist-pag"></div>
     </div>
   `;
-
   try {
-    let cotacoes = await supabase('tb_price_index_imput', {
-      filter: { is_deleted: false },
-      order: 'creation_date.desc'
-    }) || [];
+    const all = await sb('tb_price_index_imput',{is:['is_deleted','false'],order:'creation_date.desc'}).catch(()=>[]) || [];
+    const data = filterByAccess(all);
+    window._histAll = data;
+    window._isAdmin = isAdmin;
 
-    // Filtra por segmento para visualizador
-    if (!isAdmin) cotacoes = cotacoes.filter(c => c.subsegment === currentUser.segmento);
+    // Popula filtros
+    const setOpts = (id, vals) => {
+      const el = document.getElementById(id);
+      if(!el) return;
+      vals.forEach(v=>el.innerHTML+=`<option value="${v}">${v}</option>`);
+    };
+    setOpts('hf-mes',  [...new Set(data.map(d=>d.creation_date?.slice(0,7)).filter(Boolean))].sort().reverse());
+    setOpts('hf-seg',  [...new Set(data.map(d=>d.subsegment).filter(Boolean))].sort());
+    setOpts('hf-comp', [...new Set(data.map(d=>d.buyer).filter(Boolean))].sort());
+    setOpts('hf-prod', [...new Set(data.map(d=>d.product).filter(Boolean))].sort().slice(0,100));
 
-    // Popula filtro de países
-    const paises = [...new Set(cotacoes.map(c => c.country).filter(Boolean))].sort();
-    const paisSel = document.getElementById('hist-pais');
-    paises.forEach(p => paisSel.innerHTML += `<option value="${p}">${p}</option>`);
-
-    window._histData = cotacoes; // guarda para filtro
-    renderHistTable(cotacoes, isZeus, isAdmin);
-  } catch(err) {
-    document.getElementById('hist-table-wrap').innerHTML =
-      `<div class="empty-state"><div class="icon">⚠️</div><p>Erro: ${err.message}</p></div>`;
+    renderHistTable(data, isAdmin);
+  } catch(e){
+    document.getElementById('hist-tbody').innerHTML =
+      `<div class="empty"><div class="ico">⚠️</div><p>Erro: ${e.message}</p></div>`;
   }
 }
 
-function filterTable() {
-  const search = document.getElementById('hist-search')?.value?.toLowerCase() || '';
-  const pais   = document.getElementById('hist-pais')?.value || '';
-  const isZeus = currentUser.nivel_acesso === 'zeus';
-  const isAdmin= ['zeus','admin'].includes(currentUser.nivel_acesso);
-  let data = window._histData || [];
-  if (search) data = data.filter(c => JSON.stringify(c).toLowerCase().includes(search));
-  if (pais)   data = data.filter(c => c.country === pais);
-  renderHistTable(data, isZeus, isAdmin);
+function applyHistFilter(){
+  const q    = document.getElementById('hf-search')?.value?.toLowerCase()||'';
+  const mes  = document.getElementById('hf-mes')?.value||'';
+  const seg  = document.getElementById('hf-seg')?.value||'';
+  const comp = document.getElementById('hf-comp')?.value||'';
+  const prod = document.getElementById('hf-prod')?.value||'';
+  const type = document.getElementById('hf-type')?.value||'';
+  let data   = window._histAll||[];
+  if(q)    data=data.filter(d=>JSON.stringify(d).toLowerCase().includes(q));
+  if(mes)  data=data.filter(d=>d.creation_date?.startsWith(mes));
+  if(seg)  data=data.filter(d=>d.subsegment===seg);
+  if(comp) data=data.filter(d=>d.buyer===comp);
+  if(prod) data=data.filter(d=>d.product===prod);
+  if(type) data=data.filter(d=>d.quotation_type===type);
+  renderHistTable(data, window._isAdmin||false);
 }
 
-function renderHistTable(data, isZeus, isAdmin) {
-  const wrap = document.getElementById('hist-table-wrap');
-  if (!wrap) return;
-  if (!data.length) {
-    wrap.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>Nenhuma cotação encontrada.</p></div>';
+function renderHistTable(data, isAdmin){
+  const wrap = document.getElementById('hist-tbody');
+  if(!wrap) return;
+  if(!data.length){
+    wrap.innerHTML='<div class="empty"><div class="ico">📭</div><p>Nenhuma cotação encontrada.</p></div>';
     return;
   }
-
   wrap.innerHTML = `
     <table>
-      <thead>
-        <tr>
-          <th>Data</th><th>País</th><th>Produto</th><th>Fabricante</th>
-          <th>Embalagem</th><th>CFR Anastácio</th><th>Comprador</th>
-          <th>Responsável</th><th style="text-align:center">Ações</th>
-        </tr>
-      </thead>
+      <thead><tr>
+        <th>Data</th><th>Semana</th><th>País</th><th>Produto</th>
+        <th>Fabricante</th><th>Embalagem</th><th>CFR Anastácio</th>
+        <th>Comprador</th><th>Tipo</th><th>Resp.</th>
+        <th style="text-align:center">Ações</th>
+      </tr></thead>
       <tbody>
-        ${data.map(c => `
+        ${data.map(c=>`
           <tr>
-            <td>${formatDate(c.quotation_date)}</td>
-            <td><span class="badge badge-navy">${c.country||'–'}</span></td>
-            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c.product||''}">${c.product||'–'}</td>
-            <td>${c.manufacturer||'–'}</td>
+            <td>${fmtDate(c.quotation_date)}</td>
+            <td><span class="badge badge-gray">${c.week||'–'}</span></td>
+            <td><span class="badge badge-amber">${c.country||'–'}</span></td>
+            <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c.product||''}">${c.product||'–'}</td>
+            <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.manufacturer||'–'}</td>
             <td>${c.package||'–'}</td>
-            <td><strong>${c.cfr_anastacio ? formatCurrency(c.cfr_anastacio) : '–'}</strong></td>
+            <td><strong style="color:var(--navy)">${fmtCur(c.cfr_anastacio)}</strong></td>
             <td>${c.buyer||'–'}</td>
+            <td><span class="badge ${c.quotation_type==='MANUAL'?'badge-amber':'badge-navy'}">${c.quotation_type||'SKU'}</span></td>
             <td>${c.responsible_input||'–'}</td>
             <td style="text-align:center;white-space:nowrap">
-              <button class="btn btn-icon btn-sm" onclick="openCotacao(${JSON.stringify(c).replace(/"/g,'&quot;')})" title="Editar">✏️</button>
-              ${isAdmin ? `<button class="btn btn-icon btn-sm" onclick="disableRecord(${c.id})" title="Desabilitar" style="margin-left:4px">🗑️</button>` : ''}
+              <button class="btn-icon" onclick='openCot(${JSON.stringify(c.quotation_type||"sku").toLowerCase()},${JSON.stringify(c)})' title="Editar">✏️</button>
+              ${isAdmin?`<button class="btn-icon" onclick="disableRec(${c.id})" title="Desabilitar" style="margin-left:4px">🗑️</button>`:''}
             </td>
           </tr>
         `).join('')}
       </tbody>
     </table>
   `;
+  document.getElementById('hist-pag').innerHTML =
+    `<div class="pg-info">Mostrando ${data.length} registros</div>`;
 }
 
-/* Desabilita registro (soft delete) */
-async function disableRecord(id) {
-  if (!confirm('Desabilitar esta cotação? Ela ficará oculta mas não será excluída do banco.')) return;
+/* Desabilita registro (soft delete — não apaga do banco) */
+async function disableRec(id){
+  if(!confirm('Desabilitar esta cotação? Ela ficará oculta mas permanece no banco de dados.')) return;
   try {
-    await supabaseUpdate('tb_price_index_imput', id, {
-      is_deleted: true,
-      deleted_date: new Date().toISOString(),
-      deleted_responsible: currentUser.name
+    await sbPatch('tb_price_index_imput',id,{
+      is_deleted:true,
+      deleted_date:new Date().toISOString(),
+      deleted_responsible:CU.name
     });
-    showToast('Cotação desabilitada.', 'warning');
-    renderHistorico();
-  } catch(err) {
-    showToast('Erro ao desabilitar: ' + err.message, 'error');
-  }
+    showToast('Cotação desabilitada.','warning');
+    renderHist();
+  } catch(e){ showToast('Erro: '+e.message,'error'); }
 }
 
-/* =====================================================
+/* ─────────────────────────────────────────────────────────────
    FORNECEDORES POSSÍVEIS
-   Tabela: tb_price_index_possible_suppliers
-   Cruza com tb_price_index_imput para bolinhas de mês
-   ===================================================== */
-async function renderSuppliers() {
-  const isAdmin = ['zeus','admin'].includes(currentUser.nivel_acesso);
-
+   Bolinhas de mês calculadas cruzando com tb_price_index_imput
+   ───────────────────────────────────────────────────────────── */
+async function renderSuppliers(){
+  const isAdmin = ['zeus','admin'].includes(CU.nivel_acesso);
   document.getElementById('topbar-actions').innerHTML =
-    isAdmin ? `<button class="btn btn-primary" onclick="alert('Em desenvolvimento: cadastro de fornecedor')">+ Novo Fornecedor</button>` : '';
-
+    isAdmin?`<button class="btn btn-navy" onclick="alert('Em breve: cadastro de fornecedor')">+ Novo Fornecedor</button>`:'';
   document.getElementById('page-content').innerHTML = `
-    <div class="table-card">
-      <div class="table-header">
-        <div class="table-header-left">
-          <div class="table-title">Fornecedores Possíveis</div>
-          <div class="table-subtitle">Acompanhamento de cotações obrigatórias por mês</div>
-        </div>
-        <div class="table-filters">
-          <input class="filter-input" placeholder="🔍 Produto ou fornecedor..." id="sup-search" oninput="filterSuppliers()">
-          <button class="btn btn-outline btn-sm" onclick="sendEmailModal()">📧 Enviar E-mail</button>
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Fornecedores Possíveis</div><div class="card-sub">Acompanhe cotações obrigatórias</div></div>
+        <div class="filter-bar">
+          <input class="fi-filter" placeholder="🔍 Produto ou fornecedor..." id="sf-q" oninput="filterSupp()">
+          <button class="btn btn-ghost btn-sm" onclick="sendEmail()">📧 Enviar E-mail</button>
         </div>
       </div>
-      <div class="table-wrap" id="sup-table-wrap">
-        <div class="empty-state"><div class="icon">⏳</div><p>Carregando...</p></div>
+      <div class="table-wrap" id="supp-table">
+        <div class="empty"><div class="ico">⏳</div><p>Carregando...</p></div>
       </div>
     </div>
   `;
-
   try {
-    let suppliers = await supabase('tb_price_index_possible_suppliers', {
-      filter: { is_deleted: false }
-    }) || [];
-
-    if (!isAdmin) suppliers = suppliers.filter(s => s.subsegment === currentUser.segmento);
-
-    // Busca cotações para calcular bolinhas
-    const cotacoes = await supabase('tb_price_index_imput', {
-      filter: { is_deleted: false }
-    }).catch(() => []) || [];
-
-    const months = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-    const year   = new Date().getFullYear();
-
-    window._supData = { suppliers, cotacoes };
-    renderSuppliersTable(suppliers, cotacoes, months, year);
-  } catch(err) {
-    document.getElementById('sup-table-wrap').innerHTML =
-      `<div class="empty-state"><div class="icon">⚠️</div><p>Erro: ${err.message}</p></div>`;
+    let supps = await sb('tb_price_index_possible_suppliers',{is:['is_deleted','false']}).catch(()=>[]) || [];
+    if(!['zeus','admin'].includes(CU.nivel_acesso)) supps=supps.filter(s=>s.subsegment===CU.segmento);
+    const cots = await sb('tb_price_index_imput',{is:['is_deleted','false'],select:'product,manufacturer,quotation_date'}).catch(()=>[]) || [];
+    window._suppData = {supps,cots};
+    renderSuppTable(supps,cots);
+  } catch(e){
+    document.getElementById('supp-table').innerHTML =
+      `<div class="empty"><div class="ico">⚠️</div><p>Erro: ${e.message}</p></div>`;
   }
 }
 
-function renderSuppliersTable(suppliers, cotacoes, months, year) {
-  const wrap = document.getElementById('sup-table-wrap');
-  if (!wrap) return;
+function filterSupp(){
+  const q=(document.getElementById('sf-q')?.value||'').toLowerCase();
+  const {supps,cots}=window._suppData||{supps:[],cots:[]};
+  renderSuppTable(q?supps.filter(s=>(s.product||'').toLowerCase().includes(q)||(s.supplier||'').toLowerCase().includes(q)):supps,cots);
+}
 
-  months = months || ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-  year   = year   || new Date().getFullYear();
+const MONTHS=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 
-  if (!suppliers.length) {
-    wrap.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>Nenhum fornecedor cadastrado.</p></div>';
-    return;
-  }
-
-  wrap.innerHTML = `
+function renderSuppTable(supps,cots){
+  const wrap=document.getElementById('supp-table');
+  if(!wrap) return;
+  const year=new Date().getFullYear();
+  if(!supps.length){wrap.innerHTML='<div class="empty"><div class="ico">📭</div><p>Sem fornecedores cadastrados.</p></div>';return;}
+  wrap.innerHTML=`
     <table>
-      <thead>
-        <tr>
-          <th><input type="checkbox" onchange="toggleAll(this)"></th>
-          <th>Produto</th><th>Fornecedor</th><th>Segmento</th>
-          <th>Frequência</th><th>Comprador</th><th>Cot. Obr.</th><th>Status</th>
-          ${months.map(m => `<th style="text-align:center">${m.toUpperCase()}</th>`).join('')}
-          <th>Hist.</th>
-        </tr>
-      </thead>
+      <thead><tr>
+        <th><input type="checkbox" onchange="toggleAllSupp(this)"></th>
+        <th>Produto</th><th>Fornecedor</th><th>Segmento</th>
+        <th>Frequência</th><th>Comprador</th><th>Cot. Obr.</th><th>Status</th>
+        ${MONTHS.map(m=>`<th style="text-align:center">${m.toUpperCase()}</th>`).join('')}
+      </tr></thead>
       <tbody>
-        ${suppliers.map(s => {
-          // Para cada mês, verifica se há cotação do produto/fornecedor naquele mês/ano
-          const dotsHtml = months.map((m, i) => {
-            const hasCot = cotacoes.some(c =>
-              c.product?.toLowerCase().includes(s.product?.toLowerCase() || '') &&
-              c.manufacturer?.toLowerCase().includes(s.supplier?.toLowerCase() || '') &&
-              new Date(c.quotation_date).getFullYear() === year &&
-              new Date(c.quotation_date).getMonth() === i
+        ${supps.map(s=>{
+          const dots=MONTHS.map((_,i)=>{
+            const ok=cots.some(c=>
+              (c.product||'').toLowerCase().includes((s.product||'').toLowerCase().slice(0,8))&&
+              new Date(c.quotation_date).getFullYear()===year&&
+              new Date(c.quotation_date).getMonth()===i
             );
-            return `<td style="text-align:center"><span class="month-dot ${hasCot?'dot-green':'dot-red'}"></span></td>`;
+            return `<td style="text-align:center"><span class="dot ${ok?'dot-g':'dot-r'}"></span></td>`;
           }).join('');
-
-          const statusBadge = s.status === 'ATIVO'
-            ? '<span class="badge badge-green">Ativo</span>'
-            : '<span class="badge badge-amber">Em desenvolvimento</span>';
-
           return `
             <tr>
-              <td><input type="checkbox" class="sup-check" data-id="${s.id}" data-email="${s.email||''}"></td>
+              <td><input type="checkbox" class="sc" data-email="${s.email||''}"></td>
               <td>${s.product||'–'}</td>
               <td><strong>${s.supplier||'–'}</strong></td>
               <td>${s.subsegment||'–'}</td>
               <td>${s.frequency||'–'}</td>
               <td>${s.buyer||'–'}</td>
               <td>${s.mandatory_quotation==='SIM'?'<span class="badge badge-red">SIM</span>':'<span class="badge badge-gray">NÃO</span>'}</td>
-              <td>${statusBadge}</td>
-              ${dotsHtml}
-              <td style="text-align:center"><input type="checkbox" ${s.ativo?'checked':''}></td>
+              <td>${s.status==='ATIVO'?'<span class="badge badge-green">Ativo</span>':'<span class="badge badge-amber">Em Desenv.</span>'}</td>
+              ${dots}
             </tr>
           `;
         }).join('')}
@@ -1553,387 +1893,456 @@ function renderSuppliersTable(suppliers, cotacoes, months, year) {
   `;
 }
 
-function filterSuppliers() {
-  const search = document.getElementById('sup-search')?.value?.toLowerCase() || '';
-  if (!window._supData) return;
-  const { suppliers, cotacoes } = window._supData;
-  const filtered = search ? suppliers.filter(s =>
-    (s.product||'').toLowerCase().includes(search) ||
-    (s.supplier||'').toLowerCase().includes(search)
-  ) : suppliers;
-  const months = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-  renderSuppliersTable(filtered, cotacoes, months, new Date().getFullYear());
+function toggleAllSupp(el){ document.querySelectorAll('.sc').forEach(c=>c.checked=el.checked); }
+
+function sendEmail(){
+  const sel=[...document.querySelectorAll('.sc:checked')];
+  if(!sel.length){showToast('Selecione ao menos um fornecedor.','warning');return;}
+  const emails=sel.map(s=>s.dataset.email).filter(Boolean);
+  if(!emails.length){showToast('Nenhum e-mail cadastrado para os selecionados.','warning');return;}
+  window.open(`mailto:${emails.join(',')}?subject=Solicitação de Cotação - Quimianastácio&body=Prezado fornecedor,%0A%0ASolicitamos cotação conforme tabela de produtos.%0A%0AAtenciosamente,%0AEquipe Quimianastácio`);
 }
 
-function toggleAll(el) {
-  document.querySelectorAll('.sup-check').forEach(c => c.checked = el.checked);
-}
-
-/* Envia e-mail para fornecedores selecionados */
-function sendEmailModal() {
-  const selected = [...document.querySelectorAll('.sup-check:checked')];
-  if (!selected.length) { showToast('Selecione ao menos um fornecedor.', 'warning'); return; }
-  const emails = selected.map(c => c.dataset.email).filter(Boolean);
-  if (!emails.length) { showToast('Nenhum e-mail cadastrado para os selecionados.', 'warning'); return; }
-  // Abre cliente de e-mail padrão
-  const mailto = `mailto:${emails.join(',')}?subject=Solicitação de Cotação - Quimianastácio&body=Prezado fornecedor,%0A%0ASolicitamos cotação dos produtos abaixo.%0A%0AAtenciosamente,%0AEquipe Quimianastácio`;
-  window.open(mailto);
-}
-
-/* =====================================================
-   GESTÃO DE USUÁRIOS
-   Tabela: tb_price_index_users
-   Visível para: zeus e admin
-   ===================================================== */
-async function renderUsuarios() {
-  const isAdmin = ['zeus','admin'].includes(currentUser.nivel_acesso);
-  if (!isAdmin) { navigate('dashboard'); return; }
-
-  document.getElementById('topbar-actions').innerHTML = `
-    <button class="btn btn-primary" onclick="openUsuario()">+ Novo Usuário</button>
-  `;
-
+/* ─────────────────────────────────────────────────────────────
+   USUÁRIOS
+   ───────────────────────────────────────────────────────────── */
+async function renderUsers(){
+  if(!['zeus','admin'].includes(CU.nivel_acesso)){navigate('dashboard');return;}
+  document.getElementById('topbar-actions').innerHTML =
+    `<button class="btn btn-navy" onclick="openUser()">+ Novo Usuário</button>`;
   document.getElementById('page-content').innerHTML = `
-    <div class="table-card">
-      <div class="table-header">
-        <div class="table-header-left">
-          <div class="table-title">Usuários do Sistema</div>
-          <div class="table-subtitle">Gerencie acessos e permissões</div>
-        </div>
-        <div class="table-filters">
-          <input class="filter-input" placeholder="🔍 Buscar nome ou e-mail..." oninput="filterUsers(this.value)">
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Usuários do Sistema</div><div class="card-sub">Gerencie acessos e permissões</div></div>
+        <div class="filter-bar">
+          <input class="fi-filter" placeholder="🔍 Nome ou e-mail..." oninput="filterUsers(this.value)">
         </div>
       </div>
-      <div id="users-list">
-        <div class="empty-state"><div class="icon">⏳</div><p>Carregando usuários...</p></div>
+      <div id="users-body">
+        <div class="empty"><div class="ico">⏳</div><p>Carregando...</p></div>
       </div>
     </div>
   `;
-
   try {
-    const users = await supabase('tb_price_index_users', { order: 'name.asc' }) || [];
+    const users = await sb('tb_price_index_users',{order:'name.asc'}) || [];
     window._usersData = users;
     renderUsersTable(users);
-  } catch(err) {
-    document.getElementById('users-list').innerHTML =
-      `<div class="empty-state"><div class="icon">⚠️</div><p>Erro: ${err.message}</p></div>`;
-  }
+  } catch(e){ document.getElementById('users-body').innerHTML=`<div class="empty"><div class="ico">⚠️</div><p>Erro: ${e.message}</p></div>`; }
 }
 
-function filterUsers(q) {
-  const filtered = (window._usersData||[]).filter(u =>
-    u.name?.toLowerCase().includes(q.toLowerCase()) ||
-    u.email?.toLowerCase().includes(q.toLowerCase())
-  );
-  renderUsersTable(filtered);
+function filterUsers(q){
+  renderUsersTable((window._usersData||[]).filter(u=>
+    (u.name||'').toLowerCase().includes(q.toLowerCase())||
+    (u.email||'').toLowerCase().includes(q.toLowerCase())
+  ));
 }
 
-function renderUsersTable(users) {
-  const el = document.getElementById('users-list');
-  if (!el) return;
-  if (!users.length) {
-    el.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>Nenhum usuário encontrado.</p></div>';
-    return;
-  }
-
-  const nivelLabel = { zeus: '⚡ Zeus', admin: '🔑 Admin', visualizador: '👁 Visualizador' };
-  const nivelBadge = { zeus: 'badge-red', admin: 'badge-navy', visualizador: 'badge-gray' };
-
-  el.innerHTML = `
-    <div style="padding:16px 24px">
-      <div class="users-grid">
-        ${users.map(u => `
-          <div class="user-card">
-            <div class="user-card-avatar" style="background:${u.ativo?'var(--navy)':'var(--gray-400)'}">${(u.name||'?').charAt(0).toUpperCase()}</div>
-            <div class="user-card-info">
-              <div class="user-card-name">${u.name||'–'}</div>
-              <div class="user-card-email">${u.email||'–'}</div>
-              <div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-                <span class="badge ${nivelBadge[u.nivel_acesso]||'badge-gray'}">${nivelLabel[u.nivel_acesso]||u.nivel_acesso}</span>
-                ${u.segmento ? `<span class="badge badge-amber">${u.segmento}</span>` : ''}
-                ${!u.ativo ? '<span class="badge badge-red">Desabilitado</span>' : ''}
+function renderUsersTable(users){
+  const el=document.getElementById('users-body');
+  if(!el) return;
+  const nivelCls={zeus:'badge-red',admin:'badge-navy',visualizador:'badge-gray'};
+  const nivelLbl={zeus:'⚡ Zeus',admin:'🔑 Admin',visualizador:'👁 Visualizador/Editor'};
+  el.innerHTML=`
+    <table>
+      <thead><tr><th>Usuário</th><th>E-mail</th><th>Nível</th><th>Segmento</th><th>Status</th><th style="text-align:center">Ações</th></tr></thead>
+      <tbody>
+        ${users.map(u=>`
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:34px;height:34px;border-radius:50%;background:${u.ativo?'var(--navy)':'var(--text-3)'};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0">${(u.name||'?').charAt(0).toUpperCase()}</div>
+                <strong>${u.name||'–'}</strong>
               </div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:6px">
-              <button class="btn btn-icon" onclick="openUsuario(${JSON.stringify(u).replace(/"/g,'&quot;')})" title="Editar">✏️</button>
-              <button class="btn btn-icon" onclick="toggleUser(${u.id},${u.ativo})" title="${u.ativo?'Desabilitar':'Habilitar'}">${u.ativo?'🔒':'🔓'}</button>
-            </div>
+            </td>
+            <td>${u.email||'–'}</td>
+            <td><span class="badge ${nivelCls[u.nivel_acesso]||'badge-gray'}">${nivelLbl[u.nivel_acesso]||u.nivel_acesso}</span></td>
+            <td>${u.segmento?`<span class="badge badge-amber">${u.segmento}</span>`:'<span style="color:var(--text-3)">Todos</span>'}</td>
+            <td>${u.ativo?'<span class="badge badge-green">Ativo</span>':'<span class="badge badge-red">Desabilitado</span>'}</td>
+            <td style="text-align:center;white-space:nowrap">
+              <button class="btn-icon" onclick='openUser(${JSON.stringify(u)})' title="Editar">✏️</button>
+              <button class="btn-icon" onclick="toggleUser(${u.id},${u.ativo})" title="${u.ativo?'Desabilitar':'Habilitar'}" style="margin-left:4px">${u.ativo?'🔒':'🔓'}</button>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function openUser(u=null){
+  EDIT_ID = u?.id||null;
+  document.getElementById('mu-title').textContent = u?'Editar Usuário':'Novo Usuário';
+  document.getElementById('u-name').value  = u?.name||'';
+  document.getElementById('u-email').value = u?.email||'';
+  document.getElementById('u-pass').value  = '';
+  document.getElementById('u-nivel').value = u?.nivel_acesso||'visualizador';
+  document.getElementById('u-seg').value   = u?.segmento||'';
+  document.querySelector(`input[name="u-ativo"][value="${u?.ativo!==false}"]`).checked=true;
+  openModal('modal-user');
+}
+
+async function saveUser(){
+  const payload={
+    name:         document.getElementById('u-name').value,
+    email:        document.getElementById('u-email').value,
+    nivel_acesso: document.getElementById('u-nivel').value,
+    segmento:     document.getElementById('u-seg').value||null,
+    ativo:        document.querySelector('input[name="u-ativo"]:checked')?.value==='true',
+    updated_at:   new Date().toISOString()
+  };
+  const pwd=document.getElementById('u-pass').value;
+  if(pwd) payload.password=pwd;
+  try {
+    if(EDIT_ID) await sbPatch('tb_price_index_users',EDIT_ID,payload);
+    else {
+      if(!pwd){showToast('Informe a senha para novo usuário.','warning');return;}
+      payload.password=pwd; payload.created_at=new Date().toISOString();
+      await sb('tb_price_index_users',{method:'POST',body:payload});
+    }
+    showToast(EDIT_ID?'Usuário atualizado!':'Usuário criado!','success');
+    closeModal('modal-user');
+    renderUsers();
+  } catch(e){ showToast('Erro: '+e.message,'error'); }
+}
+
+async function toggleUser(id,cur){
+  try {
+    await sbPatch('tb_price_index_users',id,{ativo:!cur});
+    showToast(cur?'Usuário desabilitado.':'Usuário habilitado.','success');
+    renderUsers();
+  } catch(e){ showToast('Erro: '+e.message,'error'); }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   IMPORTAR EXCEL (apenas Zeus)
+   ───────────────────────────────────────────────────────────── */
+function renderImport(){
+  if(CU.nivel_acesso!=='zeus'){navigate('dashboard');return;}
+  document.getElementById('topbar-actions').innerHTML='';
+  const tables=[
+    {id:'tb_price_index_product',label:'Produtos',icon:'📦'},
+    {id:'tb_price_index_planning',label:'Planning',icon:'📅'},
+    {id:'tb_price_index_filter',label:'Filtros',icon:'🔧'},
+    {id:'tb_price_index_possible_suppliers',label:'Fornecedores Possíveis',icon:'🏭'},
+  ];
+  document.getElementById('page-content').innerHTML=`
+    <div class="card" style="max-width:680px">
+      <div class="card-header"><div class="card-title">📥 Importar Dados via CSV/Excel</div></div>
+      <div class="card-body">
+        <div class="fg fg-2">
+          <div class="fi-group sp2">
+            <label class="fi-label">Tabela de destino</label>
+            <select class="fi-select" id="imp-table">
+              ${tables.map(t=>`<option value="${t.id}">${t.icon} ${t.label}</option>`).join('')}
+            </select>
+          </div>
+          <div class="fi-group sp2">
+            <label class="fi-label">Arquivo CSV (separador: ; ou ,)</label>
+            <input type="file" class="fi-input" id="imp-file" accept=".csv,.xlsx" style="padding:7px">
+          </div>
+          <div class="fi-group sp2" style="flex-direction:row;align-items:center;gap:8px">
+            <input type="checkbox" id="imp-trunc">
+            <label for="imp-trunc" style="font-size:13px;color:var(--text-2)">Limpar tabela antes de importar (TRUNCATE)</label>
+          </div>
+        </div>
+        <button class="btn btn-navy" onclick="runImport()" style="margin-top:4px">📤 Importar</button>
+        <div id="imp-log" style="display:none;margin-top:16px;padding:14px;background:var(--bg);border-radius:var(--radius-sm);font-size:13px;font-family:monospace;white-space:pre-wrap"></div>
+      </div>
+    </div>
+  `;
+}
+
+async function runImport(){
+  const file=document.getElementById('imp-file').files[0];
+  const table=document.getElementById('imp-table').value;
+  const trunc=document.getElementById('imp-trunc').checked;
+  const log=document.getElementById('imp-log');
+  if(!file){showToast('Selecione um arquivo.','warning');return;}
+  log.style.display='block'; log.textContent='⏳ Lendo arquivo...';
+  const text=await file.text();
+  const sep=text.split('\n')[0].includes(';')?';':',';
+  const rows=text.trim().split('\n');
+  const headers=rows[0].split(sep).map(h=>h.trim().replace(/^"|"$/g,''));
+  const records=rows.slice(1).map(row=>{
+    const vals=row.split(sep).map(v=>v.trim().replace(/^"|"$/g,'')||null);
+    return headers.reduce((o,h,i)=>{o[h]=vals[i];return o;},{});
+  }).filter(r=>Object.values(r).some(v=>v));
+  log.textContent=`📄 ${records.length} registros. Enviando...`;
+  try {
+    if(trunc){
+      await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=gte.0`,{
+        method:'DELETE',
+        headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}
+      });
+      log.textContent+=' Tabela limpa.\n';
+    }
+    for(let i=0;i<records.length;i+=500){
+      const batch=records.slice(i,i+500);
+      await sb(table,{method:'POST',body:batch,prefer:'return=minimal'});
+      log.textContent=`📤 ${Math.min(i+500,records.length)} / ${records.length} enviados...`;
+    }
+    log.textContent=`✅ ${records.length} registros importados com sucesso para ${table}!`;
+    showToast('Importação concluída!','success');
+  } catch(e){ log.textContent=`❌ Erro: ${e.message}`; showToast('Erro na importação.','error'); }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   CONFIGURAÇÕES DO SISTEMA (apenas Zeus)
+   Permite editar tudo visualmente: cores, logo, textos, SUPABASE, etc.
+   ───────────────────────────────────────────────────────────── */
+function renderSettings(){
+  if(CU.nivel_acesso!=='zeus'){navigate('dashboard');return;}
+  document.getElementById('topbar-actions').innerHTML=
+    `<button class="btn btn-navy" onclick="saveSettings()">💾 Salvar Configurações</button>`;
+
+  // Carrega configurações salvas (localStorage)
+  const cfg = JSON.parse(localStorage.getItem('pi_config')||'{}');
+
+  document.getElementById('page-content').innerHTML=`
+    <!-- Aviso -->
+    <div style="background:var(--warning-10);border:1.5px solid var(--warning);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:20px;font-size:13px;color:#92400e">
+      ⚙️ <strong>Área Zeus:</strong> Alterações aqui afetam todo o sistema. Tenha cuidado ao modificar conexões com o banco de dados.
+    </div>
+
+    <!-- Conexão Supabase -->
+    <div class="settings-section">
+      <div class="settings-section-head">
+        <span style="font-size:18px">🔌</span>
+        <div class="settings-section-title">Conexão com Supabase</div>
+      </div>
+      <div class="settings-grid">
+        <div class="settings-item">
+          <label class="settings-label">URL do Projeto</label>
+          <input class="settings-input" id="cfg-url" value="${SUPABASE_URL}" placeholder="https://xxx.supabase.co">
+        </div>
+        <div class="settings-item">
+          <label class="settings-label">Anon Key (pública)</label>
+          <input class="settings-input" id="cfg-key" value="${SUPABASE_KEY}" placeholder="eyJ...">
+        </div>
+      </div>
+    </div>
+
+    <!-- Identidade Visual -->
+    <div class="settings-section">
+      <div class="settings-section-head">
+        <span style="font-size:18px">🎨</span>
+        <div class="settings-section-title">Identidade Visual</div>
+      </div>
+      <div class="settings-grid">
+        <div class="settings-item">
+          <label class="settings-label">Cor Principal (Navy)</label>
+          <div class="color-row">
+            <input type="color" class="color-preview" id="cfg-navy" value="${cfg.navy||'#0D1544'}" oninput="previewColor('navy',this.value)">
+            <input class="settings-input" id="cfg-navy-txt" value="${cfg.navy||'#0D1544'}" oninput="syncColor('navy',this.value)" placeholder="#0D1544">
+          </div>
+        </div>
+        <div class="settings-item">
+          <label class="settings-label">Cor de Destaque (Red)</label>
+          <div class="color-row">
+            <input type="color" class="color-preview" id="cfg-red" value="${cfg.red||'#C8102E'}" oninput="previewColor('red',this.value)">
+            <input class="settings-input" id="cfg-red-txt" value="${cfg.red||'#C8102E'}" oninput="syncColor('red',this.value)" placeholder="#C8102E">
+          </div>
+        </div>
+        <div class="settings-item">
+          <label class="settings-label">Logo (URL ou base64)</label>
+          <input class="settings-input" id="cfg-logo" value="${cfg.logo||''}" placeholder="https://... ou data:image/...">
+        </div>
+        <div class="settings-item">
+          <label class="settings-label">Ícone do Site (favicon URL)</label>
+          <input class="settings-input" id="cfg-icon" value="${cfg.icon||''}" placeholder="https://...favicon.ico">
+        </div>
+      </div>
+    </div>
+
+    <!-- Textos e Títulos -->
+    <div class="settings-section">
+      <div class="settings-section-head">
+        <span style="font-size:18px">✏️</span>
+        <div class="settings-section-title">Textos e Títulos</div>
+      </div>
+      <div class="settings-grid">
+        <div class="settings-item">
+          <label class="settings-label">Nome do Sistema</label>
+          <input class="settings-input" id="cfg-sysname" value="${cfg.sysname||'Price Index'}" placeholder="Price Index">
+        </div>
+        <div class="settings-item">
+          <label class="settings-label">Nome da Empresa</label>
+          <input class="settings-input" id="cfg-company" value="${cfg.company||'Quimianastácio'}" placeholder="Quimianastácio">
+        </div>
+        <div class="settings-item">
+          <label class="settings-label">Subtítulo Login</label>
+          <input class="settings-input" id="cfg-subtitle" value="${cfg.subtitle||'Sistema de Gestão de Cotações'}" placeholder="Sistema de...">
+        </div>
+        <div class="settings-item">
+          <label class="settings-label">Título da Aba (browser)</label>
+          <input class="settings-input" id="cfg-tabtitle" value="${cfg.tabtitle||'Price Index | Quimianastácio'}" placeholder="Price Index...">
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabelas Supabase (nomes) -->
+    <div class="settings-section">
+      <div class="settings-section-head">
+        <span style="font-size:18px">🗄️</span>
+        <div class="settings-section-title">Nomes das Tabelas no Supabase</div>
+      </div>
+      <div class="settings-grid">
+        ${[
+          ['cfg-tb-users',   'Usuários',               'tb_price_index_users'],
+          ['cfg-tb-imput',   'Cotações (Imput)',        'tb_price_index_imput'],
+          ['cfg-tb-product', 'Produtos',                'tb_price_index_product'],
+          ['cfg-tb-planning','Planning',                'tb_price_index_planning'],
+          ['cfg-tb-filter',  'Filtros',                 'tb_price_index_filter'],
+          ['cfg-tb-supp',    'Fornecedores Possíveis',  'tb_price_index_possible_suppliers'],
+        ].map(([id,lbl,def])=>`
+          <div class="settings-item">
+            <label class="settings-label">${lbl}</label>
+            <input class="settings-input" id="${id}" value="${cfg[id]||def}" placeholder="${def}">
           </div>
         `).join('')}
       </div>
     </div>
-  `;
-}
 
-function openUsuario(user = null) {
-  editingId = user?.id || null;
-  document.getElementById('modal-user-title').textContent = user ? 'Editar Usuário' : 'Novo Usuário';
-  document.getElementById('u-name').value     = user?.name || '';
-  document.getElementById('u-email').value    = user?.email || '';
-  document.getElementById('u-password').value = '';
-  document.getElementById('u-nivel').value    = user?.nivel_acesso || 'visualizador';
-  document.getElementById('u-segmento').value = user?.segmento || '';
-  document.querySelector(`input[name="u-status"][value="${user?.ativo !== false}"]`).checked = true;
-  openModal('modal-usuario');
-}
-
-async function saveUsuario() {
-  const payload = {
-    name:          document.getElementById('u-name').value,
-    email:         document.getElementById('u-email').value,
-    nivel_acesso:  document.getElementById('u-nivel').value,
-    segmento:      document.getElementById('u-segmento').value || null,
-    ativo:         document.querySelector('input[name="u-status"]:checked')?.value === 'true',
-    updated_at:    new Date().toISOString()
-  };
-  const pwd = document.getElementById('u-password').value;
-  if (pwd) payload.password = pwd;
-
-  try {
-    if (editingId) {
-      await supabaseUpdate('tb_price_index_users', editingId, payload);
-      showToast('Usuário atualizado!', 'success');
-    } else {
-      if (!pwd) { showToast('Informe a senha para o novo usuário.', 'warning'); return; }
-      payload.password   = pwd;
-      payload.created_at = new Date().toISOString();
-      await supabase('tb_price_index_users', { method: 'POST', body: payload });
-      showToast('Usuário criado com sucesso!', 'success');
-    }
-    closeModal('modal-usuario');
-    renderUsuarios();
-  } catch(err) {
-    showToast('Erro: ' + err.message, 'error');
-  }
-}
-
-async function toggleUser(id, currentStatus) {
-  try {
-    await supabaseUpdate('tb_price_index_users', id, { ativo: !currentStatus });
-    showToast(currentStatus ? 'Usuário desabilitado.' : 'Usuário habilitado.', 'success');
-    renderUsuarios();
-  } catch(err) {
-    showToast('Erro: ' + err.message, 'error');
-  }
-}
-
-/* =====================================================
-   IMPORTAR EXCEL (apenas Zeus)
-   ===================================================== */
-function renderImportar() {
-  if (currentUser.nivel_acesso !== 'zeus') { navigate('dashboard'); return; }
-  document.getElementById('topbar-actions').innerHTML = '';
-
-  // Tabelas disponíveis para importação
-  const tables = [
-    { id: 'tb_price_index_product',            label: 'Produtos',               icon: '📦' },
-    { id: 'tb_price_index_planning',           label: 'Planning',               icon: '📅' },
-    { id: 'tb_price_index_filter',             label: 'Filtros',                icon: '🔧' },
-    { id: 'tb_price_index_possible_suppliers', label: 'Fornecedores Possíveis', icon: '🏭' },
-  ];
-
-  document.getElementById('page-content').innerHTML = `
-    <div class="table-card" style="max-width:700px">
-      <div class="table-header">
-        <div class="table-header-left">
-          <div class="table-title">📥 Importar Dados via Excel/CSV</div>
-          <div class="table-subtitle">Apenas usuários Zeus podem importar dados</div>
+    <!-- Configurações de E-mail -->
+    <div class="settings-section">
+      <div class="settings-section-head">
+        <span style="font-size:18px">📧</span>
+        <div class="settings-section-title">Configurações de E-mail</div>
+      </div>
+      <div class="settings-grid">
+        <div class="settings-item">
+          <label class="settings-label">Assunto padrão (cotação)</label>
+          <input class="settings-input" id="cfg-email-sub" value="${cfg.emailSub||'Solicitação de Cotação - Quimianastácio'}" placeholder="Assunto...">
+        </div>
+        <div class="settings-item" style="grid-column:span 2">
+          <label class="settings-label">Corpo padrão do e-mail</label>
+          <textarea class="settings-input" id="cfg-email-body" rows="3" placeholder="Prezado fornecedor...">${cfg.emailBody||'Prezado fornecedor,\n\nSolicitamos cotação dos produtos abaixo.\n\nAtenciosamente,\nEquipe Quimianastácio'}</textarea>
         </div>
       </div>
-      <div style="padding:28px;display:flex;flex-direction:column;gap:20px">
-        <div>
-          <label class="field-label">1. Selecione a tabela de destino</label>
-          <select class="field-select" id="import-table" style="margin-top:8px">
-            ${tables.map(t => `<option value="${t.id}">${t.icon} ${t.label}</option>`).join('')}
-          </select>
-        </div>
-        <div>
-          <label class="field-label">2. Selecione o arquivo CSV (separador: ponto e vírgula)</label>
-          <input type="file" class="field-input" id="import-file" accept=".csv,.xlsx" style="margin-top:8px;padding:8px">
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <input type="checkbox" id="import-truncate">
-          <label for="import-truncate" style="font-size:13px;color:var(--text-light)">
-            Limpar tabela antes de importar (TRUNCATE)
-          </label>
-        </div>
-        <button class="btn btn-primary" onclick="importData()" style="width:fit-content">
-          📤 Iniciar Importação
-        </button>
-        <div id="import-log" style="display:none;padding:16px;background:var(--gray-100);border-radius:var(--radius-sm);font-size:13px;color:var(--text)"></div>
-      </div>
+    </div>
+
+    <!-- Botão salvar -->
+    <div style="display:flex;justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-navy" onclick="saveSettings()">💾 Salvar Todas as Configurações</button>
     </div>
   `;
 }
 
-async function importData() {
-  const file    = document.getElementById('import-file').files[0];
-  const table   = document.getElementById('import-table').value;
-  const truncate= document.getElementById('import-truncate').checked;
-  const log     = document.getElementById('import-log');
+/* Preview de cor em tempo real */
+function previewColor(which,val){
+  document.documentElement.style.setProperty(`--${which}`,val);
+  document.getElementById(`cfg-${which}-txt`).value=val;
+}
+function syncColor(which,val){
+  document.getElementById(`cfg-${which}`).value=val;
+  document.documentElement.style.setProperty(`--${which}`,val);
+}
 
-  if (!file) { showToast('Selecione um arquivo.', 'warning'); return; }
+/* Salva configurações no localStorage */
+function saveSettings(){
+  const cfg={
+    navy:       document.getElementById('cfg-navy')?.value,
+    red:        document.getElementById('cfg-red')?.value,
+    logo:       document.getElementById('cfg-logo')?.value,
+    icon:       document.getElementById('cfg-icon')?.value,
+    sysname:    document.getElementById('cfg-sysname')?.value,
+    company:    document.getElementById('cfg-company')?.value,
+    subtitle:   document.getElementById('cfg-subtitle')?.value,
+    tabtitle:   document.getElementById('cfg-tabtitle')?.value,
+    emailSub:   document.getElementById('cfg-email-sub')?.value,
+    emailBody:  document.getElementById('cfg-email-body')?.value,
+    'cfg-tb-users':    document.getElementById('cfg-tb-users')?.value,
+    'cfg-tb-imput':    document.getElementById('cfg-tb-imput')?.value,
+    'cfg-tb-product':  document.getElementById('cfg-tb-product')?.value,
+    'cfg-tb-planning': document.getElementById('cfg-tb-planning')?.value,
+    'cfg-tb-filter':   document.getElementById('cfg-tb-filter')?.value,
+    'cfg-tb-supp':     document.getElementById('cfg-tb-supp')?.value,
+  };
+  localStorage.setItem('pi_config',JSON.stringify(cfg));
 
-  log.style.display = 'block';
-  log.textContent = '⏳ Lendo arquivo...';
+  // Aplica logo e favicon se informados
+  if(cfg.logo){
+    document.getElementById('login-logo-img').src=cfg.logo;
+    document.querySelector('.sb-logo img').src=cfg.logo;
+  }
+  if(cfg.icon){
+    let link=document.querySelector("link[rel~='icon']");
+    if(!link){link=document.createElement('link');link.rel='icon';document.head.appendChild(link);}
+    link.href=cfg.icon;
+  }
+  if(cfg.tabtitle) document.title=cfg.tabtitle;
+  if(cfg.navy) document.documentElement.style.setProperty('--navy',cfg.navy);
+  if(cfg.red)  document.documentElement.style.setProperty('--red',cfg.red);
 
-  const text = await file.text();
-  // Detecta separador: ponto-vírgula ou vírgula
-  const sep  = text.split('\n')[0].includes(';') ? ';' : ',';
-  const rows  = text.trim().split('\n');
-  const headers = rows[0].split(sep).map(h => h.trim().replace(/^"|"$/g,''));
-  const records = rows.slice(1).map(row => {
-    const vals = row.split(sep).map(v => v.trim().replace(/^"|"$/g,'') || null);
-    return headers.reduce((obj, h, i) => { obj[h] = vals[i]; return obj; }, {});
-  }).filter(r => Object.values(r).some(v => v));
+  showToast('Configurações salvas com sucesso!','success');
+}
 
-  log.textContent = `📄 ${records.length} registros encontrados. Enviando...`;
-
-  try {
-    if (truncate) {
-      // Deleta todos os registros da tabela
-      await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=gte.0`, {
-        method: 'DELETE',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-      });
-      log.textContent += '\n🗑️ Tabela limpa.';
-    }
-
-    // Envia em lotes de 500
-    const batchSize = 500;
-    for (let i = 0; i < records.length; i += batchSize) {
-      const batch = records.slice(i, i + batchSize);
-      await supabase(table, { method: 'POST', body: batch, prefer: 'return=minimal' });
-      log.textContent = `📤 Enviados ${Math.min(i+batchSize, records.length)} / ${records.length}...`;
-    }
-
-    log.textContent = `✅ Importação concluída! ${records.length} registros importados para ${table}.`;
-    showToast('Importação concluída!', 'success');
-  } catch(err) {
-    log.textContent = `❌ Erro na importação: ${err.message}`;
-    showToast('Erro na importação.', 'error');
+/* Aplica configurações salvas ao iniciar */
+function applyStoredSettings(){
+  const cfg=JSON.parse(localStorage.getItem('pi_config')||'{}');
+  if(cfg.navy) document.documentElement.style.setProperty('--navy',cfg.navy);
+  if(cfg.red)  document.documentElement.style.setProperty('--red',cfg.red);
+  if(cfg.tabtitle) document.title=cfg.tabtitle;
+  if(cfg.logo){
+    const imgs=document.querySelectorAll('.sb-logo img, #login-logo-img');
+    imgs.forEach(i=>{ if(cfg.logo) i.src=cfg.logo; });
+  }
+  if(cfg.icon){
+    let link=document.querySelector("link[rel~='icon']");
+    if(!link){link=document.createElement('link');link.rel='icon';document.head.appendChild(link);}
+    link.href=cfg.icon;
   }
 }
 
-/* =====================================================
-   CARGA DOS DROPDOWNS
-   Busca valores únicos de cada tabela no Supabase
-   ===================================================== */
-async function loadAllDropdowns() {
+/* ─────────────────────────────────────────────────────────────
+   EXPORTAR CSV
+   ───────────────────────────────────────────────────────────── */
+async function exportCsv(){
   try {
-    // tb_price_index_filter → países, origens, destinos, modal, container, comprador, motivo, fornecedor
-    const filters = await supabase('tb_price_index_filter', { select: 'pais,origem,destino,modal,container,comprador,status,fantasia' }) || [];
-    populateSelect('f-pais',       [...new Set(filters.map(f=>f.pais).filter(Boolean))].sort());
-    populateSelect('f-porto-orig', [...new Set(filters.map(f=>f.origem).filter(Boolean))].sort());
-    populateSelect('f-porto-dest', [...new Set(filters.map(f=>f.destino).filter(Boolean))].sort());
-    populateSelect('f-modal',      [...new Set(filters.map(f=>f.modal).filter(Boolean))].sort());
-    populateSelect('f-container',  [...new Set(filters.map(f=>f.container).filter(Boolean))].sort());
-    populateSelect('f-comprador',  [...new Set(filters.map(f=>f.comprador).filter(Boolean))].sort());
-    populateSelect('f-motivo',     [...new Set(filters.map(f=>f.status).filter(Boolean))].sort());
-    populateSelect('f-fornecedor', [...new Set(filters.map(f=>f.fantasia).filter(Boolean))].sort());
-
-    // tb_price_index_planning → produtos
-    const planning = await supabase('tb_price_index_planning', { select: 'product_description' }) || [];
-    populateSelect('f-produto', [...new Set(planning.map(p=>p.product_description).filter(Boolean))].sort());
-
-    // tb_price_index_product → fabricante, embalagem, segmento, sku, país fabricante
-    const products = await supabase('tb_price_index_product', { select: 'manufacturer_desc,packaging_description,segment,sku,manufacturer_country' }) || [];
-    populateSelect('f-fabricante', [...new Set(products.map(p=>p.manufacturer_desc).filter(Boolean))].sort());
-    populateSelect('f-embalagem',  [...new Set(products.map(p=>p.packaging_description).filter(Boolean))].sort());
-    populateSelect('f-segmento',   [...new Set(products.map(p=>p.segment).filter(Boolean))].sort());
-    populateSelect('f-codigo',     [...new Set(products.map(p=>p.sku).filter(Boolean))].sort());
-    populateSelect('f-pais-fab',   [...new Set(products.map(p=>p.manufacturer_country).filter(Boolean))].sort());
-
-    // Segmentos para cadastro de usuário
-    const segs = [...new Set(products.map(p=>p.segment).filter(Boolean))].sort();
-    const uSeg = document.getElementById('u-segmento');
-    if (uSeg) segs.forEach(s => uSeg.innerHTML += `<option value="${s}">${s}</option>`);
-
-  } catch(err) {
-    console.warn('Erro ao carregar dropdowns:', err);
-  }
-}
-
-/* Preenche um <select> com array de opções */
-function populateSelect(id, options) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const current = el.value;
-  el.innerHTML = '<option value="">Selecione...</option>';
-  options.forEach(opt => el.innerHTML += `<option value="${opt}">${opt}</option>`);
-  if (current) el.value = current;
-}
-
-/* =====================================================
-   EXPORTAR EXCEL (simples via CSV)
-   Respeita permissões por segmento
-   ===================================================== */
-async function exportExcel() {
-  try {
-    const isAdmin = ['zeus','admin'].includes(currentUser.nivel_acesso);
-    let data = await supabase('tb_price_index_imput', {
-      filter: { is_deleted: false },
-      order: 'creation_date.desc'
-    }) || [];
-
-    if (!isAdmin) data = data.filter(c => c.subsegment === currentUser.segmento);
-
-    if (!data.length) { showToast('Nenhum dado para exportar.', 'warning'); return; }
-
-    const headers = Object.keys(data[0]);
-    const csv = [
+    const all=await sb('tb_price_index_imput',{is:['is_deleted','false'],order:'creation_date.desc'}).catch(()=>[]) || [];
+    const data=filterByAccess(all);
+    if(!data.length){showToast('Sem dados para exportar.','warning');return;}
+    const headers=Object.keys(data[0]);
+    const csv=[
       headers.join(';'),
-      ...data.map(row => headers.map(h => `"${(row[h]||'').toString().replace(/"/g,'""')}"`).join(';'))
+      ...data.map(r=>headers.map(h=>`"${(r[h]||'').toString().replace(/"/g,'""')}"`).join(';'))
     ].join('\n');
-
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url; a.download = `cotacoes_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click(); URL.revokeObjectURL(url);
-    showToast('Exportação concluída!', 'success');
-  } catch(err) {
-    showToast('Erro ao exportar: ' + err.message, 'error');
-  }
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));
+    a.download=`cotacoes_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    showToast('Arquivo exportado!','success');
+  } catch(e){ showToast('Erro ao exportar: '+e.message,'error'); }
 }
 
-/* =====================================================
+/* ─────────────────────────────────────────────────────────────
    MODAIS
-   ===================================================== */
-function openModal(id)  { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-// Fecha modal clicando fora
-document.querySelectorAll('.modal-overlay').forEach(overlay => {
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+   ───────────────────────────────────────────────────────────── */
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(o=>{
+  o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open'); });
 });
 
-/* =====================================================
-   TOAST NOTIFICATIONS
-   ===================================================== */
-function showToast(msg, type = 'info') {
-  const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
-  document.getElementById('toast-container').appendChild(toast);
-  setTimeout(() => toast.remove(), 4000);
+/* ─────────────────────────────────────────────────────────────
+   TOAST
+   ───────────────────────────────────────────────────────────── */
+function showToast(msg,type='info'){
+  const icons={success:'✅',error:'❌',warning:'⚠️',info:'ℹ️'};
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;
+  el.innerHTML=`<span style="font-size:16px">${icons[type]}</span><span>${msg}</span>`;
+  document.getElementById('toast-wrap').appendChild(el);
+  setTimeout(()=>el.remove(),4000);
 }
 
-/* =====================================================
-   HELPERS DE FORMATAÇÃO
-   ===================================================== */
-function formatDate(d) {
-  if (!d) return '–';
-  try { return new Date(d).toLocaleDateString('pt-BR'); } catch { return d; }
-}
-function formatCurrency(v) {
-  if (v === null || v === undefined || v === '') return '–';
-  return parseFloat(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+/* ─────────────────────────────────────────────────────────────
+   INICIALIZAÇÃO
+   ───────────────────────────────────────────────────────────── */
+// Configura max date no campo de data quando mudar
+document.getElementById('f-data')?.addEventListener('change', updateSemana);
 
-/* =====================================================
-   INIT: verifica sessão ao carregar
-   ===================================================== */
+applyStoredSettings();
 checkSession();
 </script>
 </body>

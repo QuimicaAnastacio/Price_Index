@@ -1224,13 +1224,15 @@ function navigate(page, el){
     usuarios:  ['Gestão de Usuários','Gerencie acessos e permissões do sistema'],
     importar:  ['Importar Dados','Carregue dados via arquivo CSV/Excel'],
     settings:  ['Configurações do Sistema','Personalize o sistema — apenas Zeus'],
+    ajuda:     ['Central de Ajuda','Tudo que você precisa para usar o sistema'],
+    devguide:  ['Guia do Desenvolvedor','Documentação técnica — apenas Zeus'],
   };
   const [t,s] = meta[page]||['',''];
   document.getElementById('page-title').textContent = t;
   document.getElementById('page-sub').textContent   = s;
   ({dashboard:renderDash,cotacoes:renderCotPage,historico:renderHist,
     suppliers:renderSuppliers,usuarios:renderUsers,importar:renderImport,
-    settings:renderSettings})[page]?.();
+    settings:renderSettings,ajuda:renderAjuda,devguide:renderDevGuide})[page]?.();
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -2531,6 +2533,268 @@ function onQaTableChange(){
     `;
     row2.style.display='flex';
   }
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   AJUDA — visível para todos os usuários
+   ───────────────────────────────────────────────────────────── */
+function renderAjuda(){
+  document.getElementById('topbar-actions').innerHTML = '';
+  document.getElementById('page-content').innerHTML = `
+    <div style="max-width:780px;display:flex;flex-direction:column;gap:20px">
+
+      <!-- Boas vindas -->
+      <div class="card">
+        <div class="card-body" style="display:flex;align-items:center;gap:20px">
+          <div style="font-size:48px">👋</div>
+          <div>
+            <div style="font-size:18px;font-weight:800;color:var(--navy)">Bem-vindo à Central de Ajuda</div>
+            <div style="font-size:13px;color:var(--text-2);margin-top:4px">Aqui você encontra tudo que precisa para usar o Price Index.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FAQ -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">❓ Perguntas Frequentes</div></div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+          ${[
+            ['Como faço uma nova cotação?',
+             'Clique em "Nova Cotação" no menu lateral ou no botão no topo. Escolha entre Cotação SKU (usa dados do banco) ou Cotação Manual (digitação livre). Preencha os campos obrigatórios marcados com * e clique em Salvar.'],
+            ['O que é Cotação SKU x Cotação Manual?',
+             'Cotação SKU busca automaticamente produtos, fabricantes e embalagens já cadastrados no banco. Cotação Manual permite digitar tudo livremente — útil para produtos novos ou fornecedores sem cadastro.'],
+            ['O sistema preenche os campos automaticamente. Por quê?',
+             'Quando você seleciona País + Produto + Fabricante + Embalagem, o sistema busca o último registro com essas combinações e preenche os campos com o histórico. Você pode desmarcar a opção "Usar histórico" para começar do zero.'],
+            ['Como calcula o CFR Anastácio?',
+             'O cálculo é automático: CFR Anastácio = ((Valor Frete + Valor IMO) ÷ Qtd. Container) + Cotação FOB. Basta preencher esses campos que o resultado aparece automaticamente.'],
+            ['O que significa a semana no formulário?',
+             'A semana é calculada automaticamente pela data da cotação. A semana sempre começa na segunda-feira e termina no domingo. Ex: Semana 1, Semana 2, Semana 3, Semana 4.'],
+            ['Como exportar os dados?',
+             'No Histórico, clique no botão "Exportar" no canto superior direito. O arquivo CSV será baixado com os registros que você tem permissão de visualizar.'],
+            ['Não encontrei um país/embalagem/fornecedor no dropdown. O que faço?',
+             'No formulário de cotação, clique no botão "➕ Cadastrar novo item" para adicionar o item que está faltando diretamente na tabela de referência.'],
+            ['Como desabilitar uma cotação?',
+             'No Histórico, clique no ícone 🗑️ ao lado do registro. A cotação não será excluída do banco — ficará apenas oculta da visualização.'],
+          ].map(([q,a])=>`
+            <details style="border:1.5px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+              <summary style="padding:12px 16px;cursor:pointer;font-weight:700;font-size:13px;color:var(--navy);list-style:none;display:flex;align-items:center;justify-content:space-between">
+                ${q} <span style="color:var(--text-3);font-size:18px">+</span>
+              </summary>
+              <div style="padding:12px 16px;font-size:13px;color:var(--text-2);background:var(--bg);border-top:1px solid var(--border);line-height:1.7">${a}</div>
+            </details>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Guia rápido das telas -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">🗺️ Guia Rápido das Telas</div></div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>Tela</th><th>O que faz</th><th>Quem acessa</th></tr></thead>
+            <tbody>
+              ${[
+                ['📊 Dashboard','Visão geral com KPIs, gráficos por país e segmento, últimas cotações','Todos'],
+                ['💰 Nova Cotação','Registra cotações SKU (com banco) ou Manual (digitação livre)','Todos'],
+                ['🕒 Histórico','Lista todas as cotações com filtros por data, produto, comprador, segmento','Todos'],
+                ['🏭 Forn. Possíveis','Acompanha situação das cotações obrigatórias por fornecedor','Todos'],
+                ['👥 Usuários','Cria, edita e desabilita usuários do sistema','Admin e Zeus'],
+                ['📥 Importar','Importa dados via CSV para as tabelas de referência','Apenas Zeus'],
+                ['⚙️ Configurações','Personaliza cores, logo, textos e conexões do sistema','Apenas Zeus'],
+              ].map(([t,d,q])=>`
+                <tr>
+                  <td><strong>${t}</strong></td>
+                  <td style="color:var(--text-2)">${d}</td>
+                  <td><span class="badge badge-navy">${q}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Níveis de acesso -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">🔐 Níveis de Acesso</div></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+            ${[
+              ['⚡ Zeus','Acesso total ao sistema. Pode importar dados, configurar o sistema, gerenciar usuários e ver tudo.','badge-red'],
+              ['🔑 Admin','Acesso completo às cotações e histórico. Pode gerenciar usuários mas não configura o sistema.','badge-navy'],
+              ['👁 Visualizador/Editor','Acessa e cria cotações. Vê apenas os dados do seu segmento.','badge-gray'],
+            ].map(([n,d,c])=>`
+              <div style="padding:16px;border:1.5px solid var(--border);border-radius:var(--radius-sm)">
+                <div style="margin-bottom:8px"><span class="badge ${c}">${n}</span></div>
+                <div style="font-size:12px;color:var(--text-2);line-height:1.6">${d}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- Contato -->
+      <div class="card" style="background:var(--navy);border-color:var(--navy)">
+        <div class="card-body" style="display:flex;align-items:center;gap:16px">
+          <div style="font-size:36px">💬</div>
+          <div>
+            <div style="font-size:15px;font-weight:800;color:var(--white)">Precisa de mais ajuda?</div>
+            <div style="font-size:13px;color:rgba(255,255,255,.6);margin-top:4px">Entre em contato com o administrador do sistema.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  `;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   GUIA DO DESENVOLVEDOR — apenas Zeus
+   Documenta tabelas, campos, lógicas e como manter o sistema
+   ───────────────────────────────────────────────────────────── */
+function renderDevGuide(){
+  if(CU.nivel_acesso !== 'zeus'){ navigate('dashboard'); return; }
+  document.getElementById('topbar-actions').innerHTML = '';
+  document.getElementById('page-content').innerHTML = `
+    <div style="max-width:900px;display:flex;flex-direction:column;gap:20px">
+
+      <!-- Header -->
+      <div class="card" style="background:linear-gradient(135deg,var(--navy),#1a2d7a);border:none">
+        <div class="card-body" style="display:flex;align-items:center;gap:20px">
+          <div style="font-size:48px">📖</div>
+          <div>
+            <div style="font-size:18px;font-weight:800;color:var(--white)">Guia do Desenvolvedor</div>
+            <div style="font-size:13px;color:rgba(255,255,255,.5);margin-top:4px">Documentação técnica completa do Price Index — apenas Zeus</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stack técnica -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">🛠️ Stack Técnica</div></div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>Camada</th><th>Tecnologia</th><th>Observação</th></tr></thead>
+            <tbody>
+              ${[
+                ['Frontend','HTML5 + CSS3 + JavaScript puro','Single file — index.html'],
+                ['Backend','Supabase (PostgreSQL)','REST API via fetch()'],
+                ['Autenticação','Tabela tb_price_index_users','Senha em texto — migrar para hash em produção'],
+                ['Hospedagem','GitHub Pages','Gratuito — arquivo estático'],
+                ['Fontes','Plus Jakarta Sans (Google Fonts)','Carregada via CDN'],
+                ['Dados externos','SharePoint via Microsoft Graph API','Para tb_price_index_filter'],
+              ].map(([c,t,o])=>`<tr><td><strong>${c}</strong></td><td><code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:12px">${t}</code></td><td style="color:var(--text-2)">${o}</td></tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tabelas Supabase -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">🗄️ Tabelas do Supabase</div></div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:16px">
+          ${[
+            ['tb_price_index_users','Usuários do sistema',
+              [['id','BIGSERIAL PK'],['name','TEXT'],['email','TEXT UNIQUE'],['password','TEXT'],['nivel_acesso','TEXT (zeus/admin/visualizador)'],['segmento','TEXT nullable'],['ativo','BOOLEAN'],['created_at','TIMESTAMP'],['updated_at','TIMESTAMP']]],
+            ['tb_price_index_imput','Cotações registradas (tabela principal)',
+              [['id','BIGSERIAL PK'],['country','TEXT'],['year/month/week','TEXT — semana calculada automaticamente'],['product','TEXT'],['manufacturer','TEXT'],['package','TEXT'],['quotation_type','TEXT (SKU/MANUAL)'],['cfr_anastacio','TEXT — calculado: ((frete+imo)/qtd)+fob'],['is_deleted','BOOLEAN — soft delete'],['deleted_date/deleted_responsible','TEXT — auditoria'],['responsible_input','TEXT — usuário logado']]],
+            ['tb_price_index_filter','Dados de referência para dropdowns',
+              [['pais','TEXT'],['origem','TEXT — porto origem'],['destino','TEXT — porto destino'],['modal','TEXT'],['container','TEXT'],['comprador','TEXT'],['status','TEXT — usado como Motivo'],['fantasia','TEXT — nome do fornecedor']]],
+            ['tb_price_index_product','Produtos cadastrados',
+              [['sku','TEXT'],['product','TEXT'],['packaging_description','TEXT — embalagem'],['manufacturer_desc','TEXT'],['manufacturer_country','TEXT'],['segment','TEXT']]],
+            ['tb_price_index_planning','Planejamento de produtos',
+              [['key','TEXT — chave única'],['product_description','TEXT'],['country','TEXT'],['extraction_date','TEXT']]],
+            ['tb_price_index_possible_suppliers','Fornecedores possíveis',
+              [['product','TEXT'],['supplier','TEXT'],['frequency','TEXT — Mensal/Semanal/Quinzenal/Trimestral'],['mandatory_quotation','TEXT — SIM/NÃO'],['status','TEXT — ATIVO/EM DESENVOLVIMENTO'],['email','TEXT'],['is_deleted','BOOLEAN'],['ativo','BOOLEAN']]],
+          ].map(([name,desc,fields])=>`
+            <div style="border:1.5px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+              <div style="padding:10px 16px;background:var(--navy-05);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+                <code style="font-size:13px;font-weight:700;color:var(--navy)">${name}</code>
+                <span style="font-size:12px;color:var(--text-3)">${desc}</span>
+              </div>
+              <div style="padding:12px 16px;display:flex;flex-wrap:wrap;gap:8px">
+                ${fields.map(([f,t])=>`
+                  <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:12px">
+                    <strong style="color:var(--navy)">${f}</strong>
+                    <span style="color:var(--text-3);margin-left:4px">${t}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Lógicas importantes -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">⚙️ Lógicas Importantes</div></div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+          ${[
+            ['CFR Anastácio',
+             'Calculado no frontend: <code>((Valor Frete + Valor IMO) / Qtd Container) + Cotação FOB</code>. Função: <code>calcCFR()</code>'],
+            ['Cálculo de Semana',
+             'Semana começa na segunda-feira. Função: <code>getWeekOfMonth(date)</code>. Retorna "Semana 1", "Semana 2", etc.'],
+            ['Soft Delete',
+             'Registros nunca são deletados. Campo <code>is_deleted=true</code> os oculta da visualização. Campos de auditoria: <code>deleted_date</code> e <code>deleted_responsible</code>.'],
+            ['Controle de Acesso',
+             'Função <code>filterByAccess(data)</code>: Zeus/Admin veem tudo. Visualizador vê apenas registros onde <code>subsegment === CU.segmento</code>.'],
+            ['Histórico de Cotação',
+             'Ao selecionar País+Produto+Fabricante+Embalagem, a função <code>onKeyChange()</code> busca o último registro em <code>tb_price_index_imput</code> e preenche os campos. Campos preenchidos ficam com borda verde.'],
+            ['Autocomplete',
+             'Funções <code>acInit()</code>, <code>acFilter()</code>, <code>acOpen()</code>, <code>acSelect()</code>. Cache em objeto <code>_dd</code>. Recarregado com <code>loadDropdowns()</code>.'],
+            ['Configurações',
+             'Salvas em <code>localStorage</code> como <code>pi_config</code>. Aplicadas na inicialização por <code>applyStoredSettings()</code>. Permite mudar cores, logo, textos sem editar o código.'],
+          ].map(([t,d])=>`
+            <div style="border-left:3px solid var(--navy);padding:10px 16px;background:var(--bg);border-radius:0 var(--radius-sm) var(--radius-sm) 0">
+              <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:4px">${t}</div>
+              <div style="font-size:13px;color:var(--text-2);line-height:1.7">${d}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Como manter -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">🔧 Como Manter o Sistema</div></div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>Tarefa</th><th>Como fazer</th></tr></thead>
+            <tbody>
+              ${[
+                ['Adicionar novo usuário','Menu Usuários → + Novo Usuário'],
+                ['Mudar cores do sistema','Menu Configurações → Identidade Visual'],
+                ['Trocar logo','Menu Configurações → Logo (URL ou base64)'],
+                ['Importar nova tabela de filtros','Menu Importar → seleciona tb_price_index_filter → CSV com ; como separador'],
+                ['Adicionar campo novo no formulário','Editar index.html: adicionar campo no modal-cot e incluir no payload de saveCot()'],
+                ['Adicionar nova tabela no Supabase','Supabase → SQL Editor → CREATE TABLE → atualizar loadDropdowns() se necessário'],
+                ['Publicar atualização','Substituir index.html no GitHub → GitHub Pages atualiza automaticamente em ~1min'],
+                ['Ver registros deletados','Supabase → Table Editor → tb_price_index_imput → filtrar is_deleted = true'],
+              ].map(([t,h])=>`<tr><td><strong>${t}</strong></td><td style="color:var(--text-2)">${h}</td></tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Variáveis principais -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">📝 Variáveis e Constantes Principais</div></div>
+        <div class="card-body">
+          <div style="background:var(--navy);border-radius:var(--radius-sm);padding:16px;font-family:monospace;font-size:12px;color:rgba(255,255,255,.85);line-height:2">
+            <span style="color:#C8102E">const</span> SUPABASE_URL = <span style="color:#10b981">'https://xxx.supabase.co'</span>;<br>
+            <span style="color:#C8102E">const</span> SUPABASE_KEY = <span style="color:#10b981">'eyJ...'</span>; <span style="color:rgba(255,255,255,.3)">// anon public key</span><br><br>
+            <span style="color:#C8102E">let</span> CU = null; <span style="color:rgba(255,255,255,.3)">// currentUser — usuário logado</span><br>
+            <span style="color:#C8102E">let</span> PAGE = <span style="color:#10b981">'dashboard'</span>; <span style="color:rgba(255,255,255,.3)">// página ativa</span><br>
+            <span style="color:#C8102E">let</span> EDIT_ID = null; <span style="color:rgba(255,255,255,.3)">// id do registro em edição</span><br>
+            <span style="color:#C8102E">let</span> COT_TYPE = <span style="color:#10b981">'sku'</span>; <span style="color:rgba(255,255,255,.3)">// tipo: 'sku' | 'manual'</span><br><br>
+            <span style="color:#C8102E">const</span> _dd = { <span style="color:rgba(255,255,255,.3)">// cache dos dropdowns</span><br>
+            &nbsp;&nbsp;pais:[], produto:[], fabricante:[], embalagem:[], ...<br>
+            };
+          </div>
+        </div>
+      </div>
+
+    </div>
+  `;
 }
 
 applyStoredSettings();

@@ -723,6 +723,14 @@ tbody tr:hover{background:var(--bg);}
         <label for="use-hist">Preencher campos automaticamente com base no histórico (País + Produto + Fabricante + Embalagem)</label>
       </div>
 
+
+      <!-- Botão de cadastro rápido de itens nas tabelas filter/product -->
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+        <button class="btn btn-ghost btn-sm" onclick="openQuickAdd()" title="Cadastrar novo item nas tabelas de referência">
+          ➕ Cadastrar novo item
+        </button>
+      </div>
+
       <!-- SEÇÃO 1: Identificação -->
       <div class="fs-title">📌 Identificação</div>
       <div class="fg fg-5">
@@ -1854,28 +1862,49 @@ const MONTHS=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov',
 function renderSuppTable(supps,cots){
   const wrap=document.getElementById('supp-table');
   if(!wrap) return;
-  const year=new Date().getFullYear();
+  const now=new Date();
+  const year=now.getFullYear();
+  const month=now.getMonth();
   if(!supps.length){wrap.innerHTML='<div class="empty"><div class="ico">📭</div><p>Sem fornecedores cadastrados.</p></div>';return;}
+
+  /* Calcula situação por frequência */
+  function getSituacao(s){
+    const freq=(s.frequency||'').toLowerCase();
+    // Filtra cotações deste fornecedor/produto
+    const myCots=cots.filter(c=>
+      (c.product||'').toLowerCase().includes((s.product||'').toLowerCase().slice(0,6))||
+      (c.manufacturer||'').toLowerCase().includes((s.supplier||'').toLowerCase().slice(0,6))
+    );
+    if(!myCots.length) return {label:'⚠️ Nunca cotou',cls:'badge-red'};
+
+    const lastDate=new Date(Math.max(...myCots.map(c=>new Date(c.quotation_date||c.creation_date))));
+    const diffDays=Math.floor((now-lastDate)/86400000);
+
+    if(freq.includes('semanal'))    return diffDays<=7  ? {label:'✅ Em dia',cls:'badge-green'} : {label:`⚠️ ${diffDays}d atrás`,cls:'badge-red'};
+    if(freq.includes('quinzenal'))  return diffDays<=15 ? {label:'✅ Em dia',cls:'badge-green'} : {label:`⚠️ ${diffDays}d atrás`,cls:'badge-red'};
+    if(freq.includes('mensal'))     return diffDays<=31 ? {label:'✅ Em dia',cls:'badge-green'} : {label:`⚠️ ${diffDays}d atrás`,cls:'badge-red'};
+    if(freq.includes('trimestral')) return diffDays<=92 ? {label:'✅ Em dia',cls:'badge-green'} : {label:`⚠️ ${diffDays}d atrás`,cls:'badge-red'};
+    return diffDays<=31 ? {label:'✅ Em dia',cls:'badge-green'} : {label:`⚠️ ${diffDays}d atrás`,cls:'badge-red'};
+  }
+
   wrap.innerHTML=`
     <table>
       <thead><tr>
         <th><input type="checkbox" onchange="toggleAllSupp(this)"></th>
         <th>Produto</th><th>Fornecedor</th><th>Segmento</th>
-        <th>Frequência</th><th>Comprador</th><th>Cot. Obr.</th><th>Status</th>
-        ${MONTHS.map(m=>`<th style="text-align:center">${m.toUpperCase()}</th>`).join('')}
+        <th>Frequência</th><th>Comprador</th><th>Cot. Obr.</th>
+        <th>Status</th><th>Situação</th><th>Última Cotação</th>
+        <th style="text-align:center">Ações</th>
       </tr></thead>
       <tbody>
         ${supps.map(s=>{
-          const dots=MONTHS.map((_,i)=>{
-            const ok=cots.some(c=>
-              (c.product||'').toLowerCase().includes((s.product||'').toLowerCase().slice(0,8))&&
-              new Date(c.quotation_date).getFullYear()===year&&
-              new Date(c.quotation_date).getMonth()===i
-            );
-            return `<td style="text-align:center"><span class="dot ${ok?'dot-g':'dot-r'}"></span></td>`;
-          }).join('');
+          const sit=getSituacao(s);
+          const myCots=cots.filter(c=>
+            (c.product||'').toLowerCase().includes((s.product||'').toLowerCase().slice(0,6))
+          );
+          const lastCot=myCots.length?new Date(Math.max(...myCots.map(c=>new Date(c.quotation_date||c.creation_date)))):null;
           return `
-            <tr>
+            <tr style="${s.ativo===false?'opacity:.5':''}">
               <td><input type="checkbox" class="sc" data-email="${s.email||''}"></td>
               <td>${s.product||'–'}</td>
               <td><strong>${s.supplier||'–'}</strong></td>
@@ -1884,7 +1913,12 @@ function renderSuppTable(supps,cots){
               <td>${s.buyer||'–'}</td>
               <td>${s.mandatory_quotation==='SIM'?'<span class="badge badge-red">SIM</span>':'<span class="badge badge-gray">NÃO</span>'}</td>
               <td>${s.status==='ATIVO'?'<span class="badge badge-green">Ativo</span>':'<span class="badge badge-amber">Em Desenv.</span>'}</td>
-              ${dots}
+              <td><span class="badge ${sit.cls}">${sit.label}</span></td>
+              <td>${lastCot?lastCot.toLocaleDateString('pt-BR'):'–'}</td>
+              <td style="text-align:center;white-space:nowrap">
+                <button class="btn-icon" onclick='openSupplier(${JSON.stringify(s)})' title="Editar">✏️</button>
+                <button class="btn-icon" onclick="toggleSupplier(${s.id},${s.ativo!==false})" title="${s.ativo!==false?'Inativar':'Ativar'}" style="margin-left:4px">${s.ativo!==false?'🔒':'🔓'}</button>
+              </td>
             </tr>
           `;
         }).join('')}
@@ -2406,6 +2440,99 @@ function openCotEdit(record){
   openCot(type, record);
 }
 
+
+/* Ativa/Inativa fornecedor */
+async function toggleSupplier(id, cur){
+  try {
+    await sbPatch('tb_price_index_possible_suppliers', id, {ativo: !cur});
+    showToast(cur ? 'Fornecedor inativado.' : 'Fornecedor ativado.', 'success');
+    renderSuppliers();
+  } catch(e){ showToast('Erro: '+e.message,'error'); }
+}
+
+/* Cadastro rápido de novo item nas tabelas de referência */
+function openQuickAdd(){
+  openModal('modal-quick');
+}
+
+async function saveQuickItem(){
+  const table  = document.getElementById('qa-table').value;
+  const field  = document.getElementById('qa-field').value;
+  const value  = document.getElementById('qa-value').value.trim();
+  const value2 = document.getElementById('qa-value2').value.trim();
+
+  if(!value){ showToast('Preencha o valor.','warning'); return; }
+
+  /* Monta payload conforme a tabela escolhida */
+  let payload = {};
+  if(table === 'tb_price_index_filter'){
+    payload[field] = value;
+    /* preenche campos obrigatórios com valor padrão se necessário */
+    payload.pais        = payload.pais        || (field==='pais'?value:'–');
+    payload.origem      = payload.origem      || '–';
+    payload.destino     = payload.destino     || '–';
+    payload.modal       = payload.modal       || '–';
+    payload.container   = payload.container   || '–';
+    payload.comprador   = payload.comprador   || '–';
+    payload.status      = payload.status      || '–';
+    payload.fantasia    = payload.fantasia     || '–';
+    payload.pais_2      = payload.pais_2      || '–';
+    payload.codigo      = payload.codigo      || '–';
+    payload.loja        = payload.loja        || '–';
+    payload.descr_pais  = payload.descr_pais  || '–';
+  } else {
+    /* tb_price_index_product */
+    payload.country              = '–';
+    payload.branch_code          = '–';
+    payload.sku                  = value2||value;
+    payload.product              = value;
+    payload.packaging_description= field==='packaging_description'?value:'–';
+    payload.manufacturer_country = '–';
+    payload.manufacturer_desc    = field==='manufacturer_desc'?value:'–';
+    payload.screen_lock          = '–';
+    payload.type                 = '–';
+    payload.segment_code         = '–';
+    payload.segment              = field==='segment'?value:'–';
+    payload[field]               = value;
+  }
+
+  try {
+    await sb(table, {method:'POST', body:payload});
+    showToast('Item cadastrado! Recarregue os dropdowns.','success');
+    closeModal('modal-quick');
+    /* Recarrega dropdowns para aparecer o novo item */
+    loadDropdowns();
+  } catch(e){ showToast('Erro: '+e.message,'error'); }
+}
+
+/* Atualiza os campos disponíveis conforme tabela escolhida */
+function onQaTableChange(){
+  const table = document.getElementById('qa-table').value;
+  const fieldSel = document.getElementById('qa-field');
+  const row2 = document.getElementById('qa-row2');
+
+  if(table === 'tb_price_index_filter'){
+    fieldSel.innerHTML = `
+      <option value="pais">País</option>
+      <option value="origem">Porto Origem</option>
+      <option value="destino">Porto Destino</option>
+      <option value="modal">Modal</option>
+      <option value="container">Container</option>
+      <option value="comprador">Comprador</option>
+      <option value="status">Motivo/Status</option>
+      <option value="fantasia">Fornecedor (Fantasia)</option>
+    `;
+    row2.style.display='none';
+  } else {
+    fieldSel.innerHTML = `
+      <option value="packaging_description">Embalagem</option>
+      <option value="manufacturer_desc">Fabricante</option>
+      <option value="segment">Segmento</option>
+    `;
+    row2.style.display='flex';
+  }
+}
+
 applyStoredSettings();
 checkSession();
 </script>
@@ -2505,6 +2632,58 @@ checkSession();
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeModal('modal-supp')">Cancelar</button>
       <button class="btn btn-navy" onclick="saveSupplier()">💾 Salvar Fornecedor</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+  MODAL: CADASTRO RÁPIDO DE ITEM
+  Permite adicionar novo item em tb_price_index_filter ou tb_price_index_product
+════════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-quick">
+  <div class="modal modal-sm" style="max-width:440px">
+    <div class="modal-head">
+      <div class="modal-head-title">➕ Cadastrar Novo Item</div>
+      <button class="modal-close" onclick="closeModal('modal-quick')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg fg-2">
+        <div class="fi-group sp2">
+          <label class="fi-label">Tabela <span class="req">*</span></label>
+          <select class="fi-select" id="qa-table" onchange="onQaTableChange()">
+            <option value="tb_price_index_filter">Filtros (países, portos, modal...)</option>
+            <option value="tb_price_index_product">Produtos (embalagem, fabricante...)</option>
+          </select>
+        </div>
+        <div class="fi-group sp2">
+          <label class="fi-label">Campo <span class="req">*</span></label>
+          <select class="fi-select" id="qa-field">
+            <option value="pais">País</option>
+            <option value="origem">Porto Origem</option>
+            <option value="destino">Porto Destino</option>
+            <option value="modal">Modal</option>
+            <option value="container">Container</option>
+            <option value="comprador">Comprador</option>
+            <option value="status">Motivo/Status</option>
+            <option value="fantasia">Fornecedor (Fantasia)</option>
+          </select>
+        </div>
+        <div class="fi-group sp2">
+          <label class="fi-label">Valor <span class="req">*</span></label>
+          <input type="text" class="fi-input" id="qa-value" placeholder="Digite o novo valor...">
+        </div>
+        <div class="fi-group sp2" id="qa-row2" style="display:none">
+          <label class="fi-label">SKU / Código (opcional)</label>
+          <input type="text" class="fi-input" id="qa-value2" placeholder="Ex: 1234SKU">
+        </div>
+      </div>
+      <div style="background:var(--warning-10);border:1.5px solid var(--warning);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:#92400e;margin-top:8px">
+        ⚠️ O item será adicionado diretamente na tabela e ficará disponível nos dropdowns após salvar.
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-quick')">Cancelar</button>
+      <button class="btn btn-navy" onclick="saveQuickItem()">💾 Salvar Item</button>
     </div>
   </div>
 </div>
